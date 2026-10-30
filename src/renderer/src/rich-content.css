@@ -1,0 +1,287 @@
+.rich-content {
+  color: inherit;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  line-height: 1.65;
+}
+
+.rich-content > :first-child {
+  margin-top: 0;
+}
+.rich-content > :last-child {
+  margin-bottom: 0;
+}
+.rich-content p {
+  margin: 0.6em 0;
+}
+.rich-content h1,
+.rich-content h2,
+.rich-content h3,
+.rich-content h4,
+.rich-content h5,
+.rich-content h6 {
+  margin: 1.15em 0 0.45em;
+  line-height: 1.35;
+  font-weight: 600;
+}
+.rich-content h1 {
+  font-size: 1.467em;
+}
+.rich-content h2 {
+  font-size: 1.233em;
+}
+.rich-content h3 {
+  font-size: 1.1em;
+}
+.rich-content ul,
+.rich-content ol {
+  padding-left: 1.55em;
+}
+.rich-content li {
+  margin: 0.2em 0;
+}
+.rich-content li > p {
+  margin: 0.25em 0;
+}
+.rich-content input[type="checkbox"] {
+  accent-color: #8eaaf5;
+  margin-right: 0.5em;
+}
+.rich-content blockquote {
+  margin: 0.75em 0;
+  padding: 0.5em 1em;
+  border-left: 2px solid color-mix(in srgb, var(--accent, #16756a) 60%, var(--border, #e1e6e8));
+  border-radius: 0 6px 6px 0;
+  background: color-mix(in srgb, var(--border, #e1e6e8) 22%, transparent);
+  color: inherit;
+  font-size: inherit;
+  font-style: normal;
+}
+.rich-content blockquote > :first-child {
+  margin-top: 0;
+}
+.rich-content blockquote > :last-child {
+  margin-bottom: 0;
+}
+.rich-content blockquote blockquote {
+  background: transparent;
+  border-radius: 0;
+}
+.rich-content hr {
+  margin: 1.2em 0;
+  border: 0;
+  border-top: 1px solid var(--line);
+}
+.rich-content code,
+.rich-code {
+  font-family: var(--font-mono);
+  font-size: 0.9em;
+  tab-size: 2;
+}
+.rich-content :not(pre) > code {
+  padding: 0.12em 0.35em;
+  border-radius: 4px;
+  background: var(--surface-inline-code);
+  color: var(--text-inline-code);
+}
+.rich-content table {
+  display: block;
+  width: max-content;
+  max-width: 100%;
+  margin: 0.9em 0;
+  overflow: auto;
+  border-collapse: collapse;
+  font-size: 0.94em;
+}
+.rich-content th,
+.rich-content td {
+  padding: 0.5em 0.85em;
+  border: 1px solid var(--line);
+  min-width: 5em;
+}
+.rich-content th {
+  background: var(--surface-code-toolbar);
+  color: var(--text);
+  font-weight: 600;
+}
+.rich-content tr:nth-child(even) {
+  background: rgb(142 170 245 / 4%);
+}
+.rich-source-toolbar button:focus-visible,
+.rich-source-disclosure summary:focus-visible {
+  outline: 2px solid #a2bbff;
+  outline-offset: 3px;
+}
+.rich-blocked-image {
+  color: #95a4bf;
+  font-size: 0.9em;
+}
+.rich-source {
+  margin: 0.75em 0;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--surface-code-block);
+}
+.rich-source-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75em;
+  padding: 0.35em 0.75em;
+  border-bottom: 1px solid var(--line);
+  background: var(--surface-code-toolbar);
+  color: var(--text-output);
+  font-size: 0.8em;
+}
+.rich-source-toolbar button {
+  border: 0;
+  border-radius: 4px;
+  padding: 0.25em 0.55em;
+  background: transparent;
+  color: var(--text-output);
+  font: inherit;
+  cursor: pointer;
+  max-width: 80%;
+  overflow-wrap: anywhere;
+}
+.rich-source-toolbar button:hover {
+  background: #e1e6e8;
+}
+.rich-content .rich-code {
+  margin: 0;
+  padding: 0.9em 1em;
+  overflow: auto;
+  white-space: pre;
+  font-size: 0.867em;
+  line-height: 1.6;
+  color: var(--text-code);
+}
+/* 语法高亮 token 颜色与文件视图共用，见 app.css 的 --syn-* 规则。 */
+.rich-code .hljs-deletion {
+  color: var(--danger);
+}
+.rich-code .hljs-emphasis {
+  font-style: italic;
+}
+.rich-code .hljs-strong {
+  font-weight: 700;
+}
+.rich-diagram {
+  margin: 0.85em 0;
+  padding: 0.75em;
+  border: 1px solid #35415a;
+  border-radius: 8px;
+  background: #192234;
+}
+.rich-diagram-preview {
+  display: block;
+  max-width: 100%;
+  max-height: 620px;
+  overflow: auto;
+  padding: 0.5em;
+  scrollbar-gutter: stable;
+}
+.rich-diagram-notice {
+  font-size: 0.85em;
+  color: #d5bc93;
+  white-space: pre-wrap;
+  max-height: 10em;
+  overflow: auto;
+}
+.rich-source-disclosure summary {
+  cursor: pointer;
+  color: #aebbd4;
+  font-size: 0.85em;
+  margin-top: 0.5em;
+}
+.rich-diagram .rich-source {
+  margin-bottom: 0;
+}
+.rich-diagram-layout {
+  position: fixed;
+  left: -100000px;
+  top: 0;
+  width: 1000px;
+  visibility: hidden;
+  pointer-events: none;
+}
+.rich-content .katex-display {
+  margin: 0.85em 0;
+  padding: 0.25em 0;
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+.rich-content .katex {
+  font-size: 1.12em;
+}
+.rich-content .katex-error {
+  white-space: pre-wrap;
+  color: #ffb1ba !important;
+}
+
+.rich-math-display {
+  position: relative;
+  display: block;
+  max-width: 100%;
+  margin: 0.85em 0;
+  padding: 0.45em 4.75em 0.45em 0.75em;
+  border: 1px solid transparent;
+  border-radius: 8px;
+}
+.rich-math-display:hover,
+.rich-math-display:has(:focus-visible) {
+  border-color: var(--border, #e1e6e8);
+}
+.rich-math-controls {
+  position: absolute;
+  z-index: 1;
+  top: 0.25em;
+  right: 0.25em;
+  display: flex;
+  opacity: 0;
+  pointer-events: none;
+}
+.rich-math-display:hover > .rich-math-controls,
+.rich-math-display:has(:focus-visible) > .rich-math-controls {
+  opacity: 1;
+  pointer-events: auto;
+}
+.rich-content .rich-math-controls > .review-icon-button {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 4px;
+  border: 0;
+  background: transparent;
+  color: var(--muted, #748087);
+}
+.rich-content .rich-math-controls > .review-icon-button:hover {
+  background: #f0f5f4;
+  color: var(--accent, #16756a);
+}
+.rich-math-rendered,
+.rich-math-source {
+  display: block;
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+.rich-math-source {
+  font-family: var(--font-mono);
+  font-size: 0.9em;
+  white-space: pre;
+  line-height: 1.6;
+}
+.rich-content .rich-math-display .katex-display {
+  margin: 0.2em 0;
+  padding: 0.15em 0;
+}
+.rich-content .rich-math .katex-error {
+  color: var(--danger, #b64444) !important;
+}

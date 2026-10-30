@@ -1,0 +1,25 @@
+.project-image {
+  margin: 0;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+/* 棋盘格背景显示透明区域。 */
+.project-image-canvas {
+  max-width: 100%;
+  border: 1px solid #e3e8e9;
+  border-radius: 6px;
+  background: repeating-conic-gradient(#eef1f2 0% 25%, #fff 0% 50%) 50% /
+    16px 16px;
+  line-height: 0;
+}
+.project-image-canvas img {
+  max-width: 100%;
+  height: auto;
+}
+.project-image figcaption {
+  color: #7a888c;
+  font-size: 12px;
+}

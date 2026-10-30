@@ -1,0 +1,139 @@
+.agents-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  padding: 16px 20px;
+  border-top: 1px solid var(--border);
+  background: #f7f8fa;
+}
+.agents-strip > div:first-child {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-right: 14px;
+}
+.agents-strip > div:first-child span {
+  color: var(--muted);
+  font-size: 12px;
+}
+.agents-strip button {
+  max-width: 280px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.agents-strip button small {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-top: 5px;
+  color: var(--muted);
+}
+.agents-strip .agents-back {
+  margin-left: auto;
+}
+.agents-pattern {
+  display: flex;
+  flex: 1;
+  gap: 8px;
+  min-width: 220px;
+}
+.agents-pattern input {
+  min-width: 0;
+}
+.native-agents-hub footer {
+  display: flex;
+  justify-content: space-between;
+  gap: 15px;
+  padding: 12px 20px;
+  border-top: 1px solid var(--border);
+  font-size: 12px;
+  color: var(--muted);
+}
+.native-agents-hub footer span {
+  overflow-wrap: anywhere;
+}
+.agents-feedback {
+  margin: 0;
+  padding: 12px 20px;
+}
+.agents-feedback.error {
+  color: var(--danger);
+  background: #fff5f5;
+}
+.agents-empty {
+  text-align: center;
+  color: var(--muted);
+  padding: 35px 15px;
+}
+.agents-create,
+.agents-model-picker {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 32px;
+}
+.agents-create-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.agents-eyebrow {
+  font-size: 11px;
+  letter-spacing: 1.5px;
+  color: var(--accent);
+  display: block;
+  margin-bottom: 10px;
+}
+.agents-create-scope {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin: 26px 0;
+  font-size: 13px;
+}
+.agents-create-scope span {
+  margin-right: 6px;
+  color: var(--muted);
+}
+.agents-create label {
+  gap: 10px;
+  font-size: 14px;
+}
+.agents-create p,
+.agents-model-picker > p {
+  color: var(--muted);
+  line-height: 1.7;
+  font-size: 14px;
+}
+.agents-create > small,
+.agents-create-preview > small {
+  display: block;
+  color: var(--muted);
+  margin-top: 16px;
+  font-size: 12px;
+}
+.agents-create-preview h3 {
+  font-size: 14px;
+  font-weight: 500;
+  margin-top: 24px;
+}
+.agents-create-actions {
+  display: flex;
+  gap: 10px;
+}
+.agents-model-picker [role="listbox"] {
+  margin: 16px 0;
+}
+.agents-model-picker [role="option"] {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  width: 100%;
+  text-align: left;
+  margin-bottom: 5px;
+}
+.agents-model-picker small {
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}

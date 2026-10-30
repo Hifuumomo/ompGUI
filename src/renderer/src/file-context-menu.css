@@ -1,0 +1,55 @@
+/* 在会话菜单基础上增加子菜单、分隔线与错误行。 */
+.file-context-menu {
+  min-width: 200px;
+  z-index: 40;
+}
+.file-context-menu > button.file-context-parent {
+  justify-content: space-between;
+}
+.file-context-menu > button[aria-expanded="true"] {
+  background: #f0f3f4;
+}
+.file-context-menu hr {
+  margin: 4px 6px;
+  border: 0;
+  border-top: 1px solid #e3e8e9;
+}
+.file-context-submenu {
+  position: fixed;
+  z-index: 41;
+  overscroll-behavior: contain;
+  min-width: 180px;
+}
+.file-context-submenu > button,
+.file-context-submenu > button:hover {
+  display: flex;
+  width: 100%;
+  margin: 0;
+  padding: 7px 10px;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  box-shadow: none;
+  color: #253036;
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+}
+.file-context-submenu > button:hover,
+.file-context-submenu > button:focus-visible {
+  background: #f0f3f4;
+  outline: none;
+}
+.file-context-submenu [role="status"] {
+  margin: 0;
+  padding: 7px 10px;
+  color: #858993;
+  font-size: 12px;
+}
+.file-context-error {
+  max-width: 260px;
+  margin: 4px 6px 2px;
+  color: #c4314b;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}

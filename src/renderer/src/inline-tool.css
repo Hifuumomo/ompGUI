@@ -1,0 +1,629 @@
+.process-group {
+  margin: 8px 0 18px;
+  color: var(--text-meta);
+  font-size: inherit;
+}
+/* 覆盖全局 summary 的 13px，过程摘要取会话字号的 0.867em，随字号滑块缩放。 */
+.process-group summary {
+  font-size: 0.867em;
+  line-height: 1.6;
+}
+.process-group pre {
+  font-family: var(--font-mono);
+  font-size: 0.833em;
+}
+.transcript-notice {
+  margin: 8px 0;
+  min-width: 0;
+}
+.transcript-notice > summary {
+  cursor: pointer;
+  color: var(--muted);
+}
+.internal-notice > summary {
+  color: #7854a3;
+}
+.notice-title {
+  display: inline-block;
+  max-width: calc(100% - 24px);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: bottom;
+}
+.notice-body {
+  margin-top: 8px;
+}
+.notice-status {
+  display: block;
+  color: var(--text-meta);
+  font-size: 0.9em;
+}
+.background-output > .notice-body {
+  overflow-x: auto;
+  padding: 10px 12px;
+  background: var(--surface-terminal);
+  border-radius: 6px;
+}
+.background-output > .notice-body > pre {
+  margin: 0;
+  color: var(--text-output);
+  font-family: var(--font-mono);
+  font-size: 0.833em;
+  white-space: pre;
+}
+/* 迟到结果、处理过程与后续正文共用色条和缩进，保持原始顺序。 */
+.late-result-divider {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 22px 0 12px;
+  color: var(--syn-number);
+  font-size: 0.8em;
+}
+.late-result-divider::before,
+.late-result-divider::after {
+  content: "";
+  flex: 1;
+  border-top: 1px dashed currentColor;
+}
+.late-result-divider > span {
+  max-width: 85%;
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  padding: 2px 12px;
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+.conversation-review > .conversation-late-trigger,
+.process-group.followup,
+.conversation-review > .conversation-followup {
+  margin: 0 0 0 2px;
+  border-left: 3px solid var(--syn-number);
+  padding: 6px 0 6px 14px;
+}
+.conversation-late-trigger .transcript-notice {
+  margin: 0;
+  border: 1px solid color-mix(in srgb, var(--syn-number) 45%, var(--border));
+  border-radius: 8px;
+  padding: 7px 12px;
+  background: color-mix(in srgb, var(--syn-number) 7%, var(--surface-code));
+}
+.conversation-late-trigger .transcript-notice > summary {
+  color: var(--syn-number);
+}
+.conversation-review > .conversation-followup {
+  margin-bottom: 26px;
+}
+.conversation-followup > .rich-content > :last-child {
+  margin-bottom: 0;
+}
+.followup-tag {
+  max-width: 100%;
+  margin-bottom: 6px;
+  border: 1px solid color-mix(in srgb, var(--text-target) 30%, var(--border));
+  border-radius: 999px;
+  padding: 2px 10px;
+  color: var(--text-target);
+  background: color-mix(in srgb, var(--text-target) 8%, var(--surface-code));
+  overflow-wrap: anywhere;
+  text-align: left;
+}
+.followup-tag:hover:not(:disabled) {
+  border-color: var(--text-target);
+  background: color-mix(in srgb, var(--text-target) 15%, var(--surface-code));
+}
+.followup-tag:focus-visible {
+  outline: 2px solid var(--text-target);
+  outline-offset: 3px;
+}
+.conversation-late-trigger.flash .transcript-notice {
+  outline: 2px solid var(--syn-number);
+  outline-offset: 2px;
+  background: color-mix(in srgb, var(--syn-number) 18%, var(--surface-code));
+}
+.process-summary-notices {
+  color: var(--text-meta);
+}
+/* 高度随窗口变化：窗口越高可见越多，并保证外层始终高于内层操作记录。 */
+.process-evidence {
+  max-height: clamp(400px, 75vh, 900px);
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: thin;
+  scrollbar-color: #cdd7d2 transparent;
+  scrollbar-gutter: stable;
+}
+.process-evidence:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+/* 代理来信和后台输出等使用与工具行一致的尾部展开标识。 */
+.process-evidence :is(.transcript-evidence:not(.tool-row), .transcript-notice) > summary {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 24px;
+  line-height: 1.65;
+  list-style: none;
+}
+.process-evidence :is(.transcript-evidence:not(.tool-row), .transcript-notice) > summary::-webkit-details-marker {
+  display: none;
+}
+.process-evidence :is(.transcript-evidence:not(.tool-row), .transcript-notice) > summary::after {
+  content: "›";
+  margin-left: auto;
+  flex-shrink: 0;
+  color: var(--muted);
+}
+.process-evidence :is(.transcript-evidence:not(.tool-row), .transcript-notice)[open] > summary::after {
+  transform: rotate(90deg);
+}
+.process-evidence > .conversation-message {
+  margin: 8px 0;
+  color: var(--text-secondary);
+  font-size: 0.933em;
+  line-height: 1.65;
+}
+.process-evidence > .conversation-message > .rich-content {
+  color: inherit;
+}
+/* 思考正文：左侧细竖线，浅灰、不斜体；内部富文本继承该块的颜色与字号。 */
+.thinking-block {
+  margin: 8px 0;
+  padding-left: 14px;
+  border-left: 2px solid var(--line-thinking);
+  color: var(--text-thinking);
+  /* 思考可能位于已缩小的过程消息内，直接按会话基准字号换算，避免逐级叠乘。 */
+  font-size: calc(var(--conversation-font-size) * 0.933);
+  font-style: normal;
+  line-height: 1.65;
+}
+.thinking-block.thinking-content .rich-content {
+  color: inherit;
+  font-size: inherit;
+  line-height: inherit;
+}
+.process-errors,
+.conversation-review .inline-error {
+  max-height: 200px;
+  overflow: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #cdd7d2 transparent;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.conversation-review .inline-error {
+  margin: 0;
+  padding: 2px 0;
+  font-size: inherit;
+  line-height: 1.65;
+}
+.process-errors {
+  margin: 4px 0;
+  scrollbar-gutter: stable;
+}
+.process-errors > .inline-error {
+  max-height: none;
+  overflow: visible;
+}
+.process-errors:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.process-group > summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: fit-content;
+  max-width: 100%;
+  padding: 3px 0;
+  cursor: pointer;
+  list-style: none;
+}
+.process-group > summary::-webkit-details-marker {
+  display: none;
+}
+.process-icon {
+  color: var(--icon);
+}
+.process-summary-chevron {
+  display: inline-block;
+  flex-shrink: 0;
+}
+.process-group[open] > summary .process-summary-chevron {
+  transform: rotate(90deg);
+}
+.process-group > summary:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+.tool-row > summary {
+  cursor: pointer;
+  list-style: none;
+  color: var(--text-verb);
+  font-size: 0.867em;
+}
+.tool-operation-icon {
+  width: 1em;
+  height: 1em;
+  flex: 0 0 1em;
+  align-self: center;
+}
+.tool-type-group {
+  margin: 8px 0;
+}
+.tool-type-group > summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  list-style: none;
+  width: fit-content;
+  max-width: 100%;
+  padding: 4px 0;
+  color: var(--text-verb);
+}
+.tool-group-label {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.tool-type-group > summary::-webkit-details-marker {
+  display: none;
+}
+.tool-type-chevron {
+  margin-left: auto;
+}
+.tool-type-group[open] > summary .tool-type-more {
+  display: none;
+}
+.tool-type-group[open] > summary .tool-type-chevron {
+  transform: rotate(90deg);
+}
+.tool-type-group > summary:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+.tool-type-items {
+  max-height: clamp(200px, 65vh, 760px);
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: thin;
+  scrollbar-color: #cdd7d2 transparent;
+  scrollbar-gutter: stable;
+  margin-top: 2px;
+  padding: 0 8px 4px 0;
+}
+.tool-type-items:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.tool-type-items > .tool-row {
+  margin: 0;
+}
+.tool-type-items > .tool-row > summary {
+  min-height: 26px;
+  padding: 0;
+  line-height: 1.65;
+  flex-wrap: nowrap;
+  align-items: center;
+  overflow: hidden;
+}
+.tool-type-items > .tool-row > summary > span:first-of-type {
+  flex-shrink: 0;
+}
+.tool-type-items > .tool-row > summary > .tool-target {
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.tool-row > summary::-webkit-details-marker {
+  display: none;
+}
+.tool-row.process-error > summary,
+.tool-row.process-error > summary .tool-target,
+.tool-row.process-error > div > .tool-target-list > li > .tool-target,
+.tool-row.process-error > summary .tool-row-chevron {
+  color: var(--danger);
+  text-decoration-color: currentColor;
+}
+.tool-row-multiple > summary {
+  flex-wrap: nowrap;
+}
+.tool-target-preview {
+  display: inline-block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.tool-target-list {
+  margin: 8px 0 0;
+  padding: 0 0 0 20px;
+  list-style: none;
+}
+.tool-target-list > li {
+  min-width: 0;
+  margin: 7px 0;
+}
+.tool-target-list > li > .tool-target {
+  max-width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+/* 路径按可用宽度省略目录；仅末级名称自身超宽时才截断名称。 */
+.tool-target[data-target-kind="file"] {
+  display: inline-flex;
+  overflow: hidden;
+  white-space: nowrap;
+  vertical-align: bottom;
+}
+.tool-target-directory {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.tool-target-filename {
+  flex: 0 0 auto;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.tool-row-chevron {
+  margin-left: auto;
+  flex-shrink: 0;
+  color: var(--icon);
+}
+.tool-row > summary:focus-visible,
+.tool-target:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+.inline-tool-details {
+  margin: 4px 0 8px;
+  min-width: 0;
+  color: var(--text-output);
+}
+/* 非命令：左侧竖线表达归属，不画框；竖线对齐工具行图标中线（图标 1em、summary 字号 0.867em），正文对齐动词。 */
+.inline-tool-details[data-kind="target"] .inline-tool-content {
+  overflow-x: auto;
+  margin-left: calc(0.433em - 1px);
+  padding: 2px 0 2px calc(0.434em + 6px);
+  border-left: 2px solid var(--line);
+}
+/* 命令：命令与输出合成一个终端块。 */
+.inline-tool-details[data-kind="command"] .inline-tool-content {
+  overflow-x: auto;
+  padding: 6px 10px;
+  border-radius: 6px;
+  background: var(--surface-terminal);
+}
+.inline-tool-label {
+  display: block;
+  color: var(--text-meta);
+  font-size: 0.8em;
+  line-height: 1.5;
+}
+.inline-tool-details pre,
+.inline-tool-details pre.inline-tool-source {
+  margin: 10px 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: inherit;
+  font-family: var(--font-mono);
+  font-size: 0.833em;
+  line-height: 1.65;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+/* 命令是终端块的首行：无独立底色，$ 前缀用图标灰。 */
+.inline-tool-details pre.inline-tool-source {
+  margin: 0;
+  background: transparent;
+  color: var(--text-code);
+}
+.inline-tool-source > span {
+  color: var(--icon);
+  user-select: none;
+}
+.inline-tool-output {
+  min-width: 0;
+}
+.inline-tool-source + .inline-tool-output {
+  margin-top: 4px;
+}
+.inline-tool-details pre {
+  margin: 4px 0;
+}
+/* 输出里的 Markdown 标题不比会话正文醒目。 */
+.inline-tool-output :is(h1, h2, h3, h4) {
+  margin: 8px 0 4px;
+  font-size: 1em;
+  font-weight: 600;
+}
+.inline-tool-output p {
+  margin: 4px 0;
+}
+/* 输出中的文件链接：确认存在后才出现，颜色统一为 --accent，报错行保持 --danger。 */
+.inline-tool-output a.rich-link {
+  color: var(--accent);
+  font-weight: inherit;
+  text-decoration: none;
+}
+.inline-tool-output a.rich-link:hover {
+  text-decoration: underline;
+}
+.inline-tool-output a.rich-link .file-link-icon {
+  display: none;
+}
+.inline-tool-output .inline-output-location {
+  color: var(--text-meta);
+}
+.process-error .inline-tool-output a.rich-link {
+  color: var(--danger);
+  text-decoration: underline;
+}
+/* 工具行右侧结果摘要。 */
+.tool-row-result {
+  margin-left: auto;
+  flex-shrink: 0;
+  color: var(--text-meta);
+  font-size: 0.9em;
+}
+.tool-row-result ~ .tool-row-chevron {
+  margin-left: 0;
+}
+/* 行尾「↗」：只在悬停或键盘聚焦该行时显示。 */
+.tool-target-open {
+  flex: 0 0 auto;
+  width: 22px;
+  height: 20px;
+  padding: 0;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--icon);
+  cursor: pointer;
+  line-height: 1;
+  opacity: 0;
+}
+.tool-row > summary:hover .tool-target-open,
+.tool-row > summary:focus-within .tool-target-open,
+.tool-target-list > li:hover > .tool-target-open,
+.tool-target-list > li:focus-within > .tool-target-open {
+  opacity: 1;
+}
+.tool-target-open:hover {
+  color: var(--accent);
+}
+.tool-target-open:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.inline-file-details {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  overflow: hidden;
+  background: var(--surface-code);
+}
+.inline-file-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 7px 12px;
+  border-bottom: 1px solid var(--line);
+  background: var(--surface-code-header);
+}
+.inline-file-header .inline-tool-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.inline-file-header .file-review-wrap {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+}
+.inline-file-header .file-review-wrap[aria-pressed="true"] {
+  background: #e4efea;
+  border-color: var(--accent);
+  color: #254a3c;
+}
+.inline-file-content {
+  overflow-x: auto;
+}
+.inline-file-content > p,
+.inline-file-content .file-review-replacements {
+  padding: 0 12px;
+}
+.inline-file-details pre.file-code-view {
+  margin: 0;
+}
+.inline-file-details pre.file-read-notices {
+  margin: 8px 12px;
+  color: var(--muted);
+}
+/* 预览态：底部渐隐提示还有更多内容，脚注栏承载展开与侧栏入口。 */
+.inline-file-content[data-preview="true"] {
+  position: relative;
+}
+.inline-file-content[data-preview="true"]::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 36px;
+  background: linear-gradient(to bottom, transparent, var(--surface-code));
+  pointer-events: none;
+}
+.inline-detail-footer {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 12px;
+  border-top: 1px solid var(--line);
+  background: var(--surface-code-header);
+  color: var(--muted);
+  font-size: 0.8em;
+}
+.inline-detail-footer button {
+  padding: 2px 6px;
+  border: 0;
+  background: transparent;
+  color: var(--accent);
+  cursor: pointer;
+}
+.inline-detail-footer button:focus-visible,
+.inline-output-omitted:focus-visible,
+.tool-row-collapse:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+/* 命令与工具输出：中间省略行，整行是一个按钮。 */
+.inline-output-omitted {
+  display: block;
+  width: 100%;
+  margin: 4px 0;
+  padding: 3px 0;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font-size: 0.8em;
+  text-align: center;
+  cursor: pointer;
+}
+.inline-output-omitted:hover {
+  color: var(--accent);
+}
+/* 吸顶标题：展开且内容较长的工具行，summary 吸在最近滚动祖先的顶部。 */
+.tool-row[data-sticky="true"] > summary {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: var(--surface-code-header);
+  border-bottom: 1px solid var(--line);
+}
+.tool-row-collapse {
+  flex-shrink: 0;
+  padding: 0 6px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: transparent;
+  color: var(--accent);
+  font-size: 0.9em;
+  cursor: pointer;
+}

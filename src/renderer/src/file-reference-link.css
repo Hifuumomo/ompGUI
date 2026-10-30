@@ -1,0 +1,63 @@
+.rich-link {
+  color: #2455a0;
+  text-underline-offset: 3px;
+}
+.rich-link:hover {
+  color: #1d4480;
+}
+.rich-file-link {
+  font-weight: 600;
+  text-decoration: none;
+}
+.rich-file-link:hover {
+  text-decoration: underline;
+}
+.rich-file-link .file-link-icon {
+  display: inline-block;
+  width: 0.9em;
+  height: 1em;
+  margin-right: 0.3em;
+  vertical-align: -0.15em;
+}
+.rich-link:focus-visible {
+  outline: 2px solid #2455a0;
+  outline-offset: 3px;
+}
+.rich-blocked-link {
+  text-decoration: underline dotted;
+  color: #aeb9cf;
+}
+.rich-link-error {
+  display: block;
+  color: #ffb1ba;
+  font-size: 0.9em;
+}
+.file-reference-preview {
+  position: fixed;
+  z-index: 1000;
+  box-sizing: border-box;
+  width: max-content;
+  max-width: min(340px, calc(100vw - 16px));
+  max-height: calc(100vh - 16px);
+  overflow: hidden;
+  padding: 8px;
+  border: 1px solid #c8d0dc;
+  border-radius: 8px;
+  background: #fff;
+  color: #253036;
+  box-shadow: 0 6px 24px rgb(0 0 0 / 18%);
+  font: 13px/1.4 system-ui, sans-serif;
+  overflow-wrap: anywhere;
+  pointer-events: none;
+}
+.file-reference-preview img {
+  display: block;
+  width: auto;
+  height: auto;
+  max-width: min(320px, calc(100vw - 34px));
+  max-height: min(240px, calc(100vh - 34px));
+  object-fit: contain;
+}
+.file-reference-preview [role="alert"] {
+  color: #9d2735;
+}

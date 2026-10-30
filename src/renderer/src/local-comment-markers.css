@@ -1,0 +1,16 @@
+.local-comment-marker {
+  position: fixed;
+  z-index: 45;
+  min-width: 24px;
+  height: 22px;
+  padding: 0 4px;
+  border: 1px solid #1d4ed8;
+  border-radius: 5px;
+  color: #fff;
+  background: #2563eb;
+  font: 600 12px/20px system-ui, sans-serif;
+  cursor: pointer;
+  box-shadow: 0 1px 3px #0003;
+}
+.local-comment-marker:focus-visible { outline: 2px solid #60a5fa; outline-offset: 2px; }
+.context-comment.context-comment-nonmodal { max-width: calc(100vw - 16px); max-height: calc(100vh - 16px); }

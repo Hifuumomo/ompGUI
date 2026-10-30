@@ -1,0 +1,53 @@
+/* Fast 模式开关：只有闪电图标，无边框无底色，紧跟思考等级按钮。 */
+.composer-toolbar .fast-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  /* 覆盖全局 button:disabled 的透明度，让禁用色与等待态各自生效。 */
+  opacity: 1;
+}
+.fast-toggle svg {
+  width: 12px;
+  height: 12px;
+  fill: currentColor;
+}
+.composer-toolbar .fast-toggle[data-phase="on"] {
+  color: var(--accent);
+}
+.composer-toolbar .fast-toggle[data-phase="degraded"] {
+  color: #b07a1a;
+}
+.composer-toolbar .fast-toggle:not(:disabled):hover {
+  background: transparent;
+  opacity: 0.75;
+}
+.composer-toolbar .fast-toggle:focus-visible {
+  outline: 2px solid #16756a40;
+  border-radius: 8px;
+}
+.composer-toolbar .fast-toggle:disabled:not([aria-busy="true"]) {
+  cursor: not-allowed;
+  color: #b9c2c5;
+}
+.composer-toolbar .fast-toggle[aria-busy="true"] {
+  opacity: 0.55;
+}
+.fast-toggle[aria-busy="true"] svg {
+  animation: fast-toggle-pulse 0.9s ease-in-out infinite;
+}
+@keyframes fast-toggle-pulse {
+  50% {
+    opacity: 0.35;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .fast-toggle[aria-busy="true"] svg {
+    animation: none;
+  }
+}

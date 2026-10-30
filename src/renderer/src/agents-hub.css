@@ -1,0 +1,267 @@
+@import "./agents-hub-controls.css";
+
+.agents-hub-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 120;
+  padding: 8px;
+  background: #f7f8fa;
+  color: #253036;
+}
+.native-agents-hub {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  outline: none;
+  background: white;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+.native-agents-hub header {
+  display: flex;
+  align-items: center;
+  gap: 30px;
+  padding: 15px 20px;
+  border-bottom: 1px solid var(--border);
+}
+.native-agents-hub header > div {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+}
+.native-agents-hub header strong {
+  color: var(--accent);
+  font-size: 22px;
+}
+.native-agents-hub header span {
+  color: var(--muted);
+  font-size: 13px;
+}
+.native-agents-hub header > span {
+  flex: 1;
+}
+.native-agents-hub header > button {
+  padding: 0 9px;
+  font-size: 24px;
+  border: 0;
+}
+.agents-workspace {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+.agents-sidebar {
+  width: 210px;
+  flex-shrink: 0;
+  padding: 22px 12px;
+  background: #f7f8fa;
+  border-right: 1px solid var(--border);
+}
+.agents-sidebar > small {
+  display: block;
+  padding: 0 12px 12px;
+  color: var(--muted);
+}
+.agents-sidebar button {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+  margin-bottom: 5px;
+  text-align: left;
+  background: transparent;
+  border: 1px solid transparent;
+}
+.agents-sidebar button:last-of-type {
+  margin-top: 22px;
+  color: var(--accent);
+}
+.agents-sidebar small,
+.agents-sidebar p {
+  font-size: 12px;
+  color: var(--muted);
+}
+.agents-sidebar p {
+  padding: 15px 12px;
+  line-height: 1.7;
+}
+.agents-sidebar button[aria-current="page"],
+.native-agents-hub button[aria-selected="true"],
+.native-agents-hub button[aria-pressed="true"] {
+  background: var(--accent-light);
+  color: var(--accent);
+}
+.agents-sidebar.has-focus button[aria-current="page"] {
+  border-color: var(--accent);
+}
+.agents-workspace > main {
+  flex: 1;
+  min-width: 0;
+  overflow: auto;
+}
+.agents-list-pane {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  padding: 22px 24px 12px;
+}
+.agents-list-heading > div {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+.native-agents-hub h2 {
+  font-size: 20px;
+  font-weight: 600;
+  margin: 0;
+}
+.agents-list-heading span {
+  color: var(--muted);
+  font-size: 13px;
+}
+.agents-list-heading input {
+  background: #f7f8fa;
+}
+.agents-table-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  margin-top: 20px;
+}
+.agents-columns,
+.agents-row {
+  display: grid;
+  grid-template-columns:
+    minmax(210px, 2fr) minmax(160px, 1.4fr) minmax(85px, 0.7fr)
+    minmax(85px, 0.7fr) 55px;
+  gap: 18px;
+  align-items: center;
+  min-width: 730px;
+}
+.agents-columns {
+  padding: 10px 13px;
+  position: sticky;
+  top: 0;
+  background: white;
+  z-index: 1;
+  border-bottom: 1px solid var(--border);
+  font-size: 12px;
+  color: var(--muted);
+}
+.agents-row {
+  width: 100%;
+  text-align: left;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  padding: 14px 12px;
+  font-size: 13px;
+  margin: 3px 0;
+}
+.agents-list-pane.has-focus .agents-row[aria-selected="true"] {
+  border-color: #b9d1ca;
+}
+.agents-row > span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.agents-identity {
+  display: grid;
+  grid-template-columns: 9px 1fr;
+  column-gap: 9px;
+  align-items: center;
+}
+.agents-identity strong {
+  font-size: 14px;
+  font-weight: 600;
+}
+.agents-identity small {
+  grid-column: 2;
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--muted);
+  margin-top: 5px;
+}
+.agents-dot {
+  width: 7px;
+  height: 7px;
+  background: var(--accent);
+  border-radius: 50%;
+}
+.agents-dot.off {
+  background: #a2acb0;
+}
+.agents-row.is-disabled .agents-identity strong {
+  color: var(--muted);
+}
+.agents-model small {
+  display: block;
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 5px;
+}
+.agents-new-row {
+  width: 100%;
+  text-align: left;
+  color: var(--accent);
+  border: 1px dashed var(--border);
+  margin-top: 12px;
+  padding: 13px;
+}
+.agents-details {
+  flex-shrink: 0;
+  border-top: 1px solid var(--border);
+  padding: 14px 0 0;
+  margin-top: 14px;
+  font-size: 13px;
+}
+.agents-details summary {
+  cursor: pointer;
+  color: var(--muted);
+}
+.agents-details p,
+.agents-file-path {
+  overflow-wrap: anywhere;
+}
+.agents-details pre {
+  max-height: 170px;
+}
+.native-agents-hub pre {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  overflow: auto;
+  background: #f7f8fa;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 16px;
+  font:
+    13px/1.7 "Cascadia Code",
+    Consolas,
+    monospace;
+}
+@media (max-width: 800px) {
+  .agents-sidebar {
+    width: 150px;
+    padding: 16px 8px;
+  }
+  .agents-list-pane {
+    padding: 16px 12px;
+  }
+  .native-agents-hub header > span {
+    display: none;
+  }
+  .native-agents-hub header > button {
+    margin-left: auto;
+  }
+  .native-agents-hub footer {
+    flex-wrap: wrap;
+  }
+  .agents-create,
+  .agents-model-picker {
+    padding: 20px;
+  }
+}

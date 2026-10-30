@@ -1,0 +1,9 @@
+.context-comment { position: fixed; z-index: 10000; box-sizing: border-box; width: min(420px, calc(100vw - 16px)); max-height: calc(100vh - 16px); overflow: auto; display: flex; flex-direction: column; gap: 10px; padding: 16px; color: var(--text, #202020); background: var(--panel, #fff); border: 1px solid var(--border, #ddd); border-radius: 10px; box-shadow: 0 8px 32px #0003; }
+.context-comment-heading { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.context-comment-heading .review-icon-button { position: relative; display: inline-flex; align-items: center; justify-content: center; width: 30px; height: 30px; padding: 5px; border: 0; color: var(--muted, #748087); background: transparent; }
+.context-comment-heading .review-icon-button:hover { color: var(--accent, #16756a); background: var(--accent-light, #e7f3ef); }
+.context-comment-heading .review-icon-tooltip { position: absolute; z-index: 1; top: calc(100% + 4px); right: 0; padding: 5px 8px; border-radius: 5px; background: #253036; color: #fff; white-space: nowrap; pointer-events: none; font-size: .8rem; font-weight: normal; }
+.context-comment-preview { max-height: min(220px, 30vh); overflow: auto; margin: 0; padding: 10px; border: 1px solid var(--border, #ddd); white-space: pre-wrap; overflow-wrap: anywhere; font-size: .85em; }
+.context-comment textarea { min-height: 90px; resize: vertical; max-height: 30vh; width: 100%; box-sizing: border-box; }
+.context-comment-actions { display: flex; justify-content: flex-end; gap: 8px; }
+.context-comment [role=alert] { margin: 0; color: var(--danger, #a32020); }

@@ -1,0 +1,74 @@
+.project-type-icon {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font:
+    700 11px/1 Consolas,
+    monospace;
+}
+.project-type-icon.python,
+.project-type-icon.cpp {
+  color: #468eaa;
+}
+.project-type-icon.react {
+  color: #18a6c4;
+}
+.project-type-icon.javascript {
+  color: #af9a16;
+}
+.project-type-icon.typescript {
+  color: #288cca;
+}
+.project-type-icon.css {
+  color: #7662c3;
+}
+.project-type-icon.html {
+  color: #d87536;
+}
+.project-type-icon.markdown {
+  color: #3988ac;
+  font-size: 18px;
+}
+.project-type-icon.text {
+  color: #9aa3a7;
+  font-size: 18px;
+}
+.project-type-icon.yaml {
+  color: #ba668f;
+}
+.project-change-icon {
+  width: 16px;
+  height: 16px;
+  border: 1.5px solid currentColor;
+  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 16px;
+  font: 700 15px/1 monospace;
+}
+.project-change-icon.added,
+.project-change-icon.untracked,
+.project-tree-row.added,
+.project-tree-row.untracked {
+  color: #00a443;
+}
+.project-change-icon.modified,
+.project-tree-row.modified {
+  color: #4184f7;
+}
+.project-change-icon.deleted,
+.project-tree-row.deleted {
+  color: #d14c51;
+}
+.project-change-icon.renamed,
+.project-tree-row.renamed {
+  color: #9864c9;
+}
+.project-change-icon.conflict,
+.project-tree-row.conflict {
+  color: #b97914;
+}

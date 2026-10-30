@@ -1,0 +1,104 @@
+.browser-panel {
+  position: relative;
+  width: 560px;
+  min-width: 0;
+  min-height: 0;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  border-left: 1px solid var(--border);
+  background: #fff;
+  color: #30343b;
+}
+.browser-panel[hidden] { display: none; }
+.browser-panel-tools {
+  flex-shrink: 0;
+  min-width: 0;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border);
+}
+.browser-panel-heading,
+.browser-panel-navigation {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  gap: 4px;
+}
+.browser-panel-heading { justify-content: space-between; margin-bottom: 6px; }
+.browser-panel-heading strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+}
+.browser-panel-navigation input {
+  flex: 1;
+  width: 0;
+  min-width: 0;
+  padding: 6px 8px;
+  font-size: 12px;
+}
+.browser-panel .review-icon-button {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  padding: 4px;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: inherit;
+}
+.browser-panel .review-icon-button:hover:not(:disabled) { background: #edf1f3; }
+.browser-panel .review-icon-button:disabled { opacity: .35; cursor: default; }
+/* 提示朝工具区内侧展开，不落入原生网页。 */
+.browser-panel .review-icon-tooltip {
+  position: absolute;
+  z-index: 5;
+  bottom: calc(100% + 3px);
+  top: auto;
+  left: 0;
+  transform: none;
+  padding: 4px 7px;
+  border-radius: 4px;
+  background: #30343b;
+  color: #fff;
+  font-size: 11px;
+  white-space: nowrap;
+  pointer-events: none;
+}
+.browser-panel-heading .review-icon-tooltip,
+.browser-panel-navigation > :last-child .review-icon-tooltip { left: auto; right: 0; }
+.browser-panel-heading .review-icon-tooltip { top: 0; bottom: auto; right: calc(100% + 5px); }
+.browser-panel-error {
+  margin: 7px 0 0;
+  color: var(--danger);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+.browser-panel-content {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  color: var(--muted);
+  background: #f8fafb;
+}
+.browser-panel-content > p { padding: 20px; text-align: center; font-size: 13px; }
+.browser-panel-picking {
+  margin: 7px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+  /* 固定提示区域，开始选择不能改变原生正文 bounds 并取消自己的请求。 */
+  height: 36px;
+  line-height: 18px;
+  overflow: auto;
+}
+.browser-panel-picking.browser-panel-error { color: var(--danger); }

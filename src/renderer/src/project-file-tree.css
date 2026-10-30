@@ -1,0 +1,113 @@
+.project-tree-modes {
+  display: inline-flex;
+  align-self: flex-start;
+  gap: 2px;
+  padding: 3px;
+  border: 1px solid #e1e5ea;
+  border-radius: 9px;
+  background: #f0f2f5;
+}
+.project-files .project-tree-modes .review-icon-button {
+  width: auto;
+  min-width: 36px;
+  padding-inline: 8px;
+  gap: 5px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: #646b75;
+}
+.project-tree-modes .review-icon-button:hover {
+  background: #e4e9f0;
+}
+.project-tree-modes .review-icon-button[aria-pressed="true"] {
+  background: #fff;
+  color: #3675ce;
+  box-shadow: 0 1px 3px #0002;
+}
+.project-tree-count {
+  flex-shrink: 0;
+  min-width: 17px;
+  padding: 0 4px;
+  border-radius: 8px;
+  background: #e7eef8;
+  color: #3675ce;
+  font-size: 10px;
+  line-height: 17px;
+  font-variant-numeric: tabular-nums;
+}
+.project-tree-modes .review-icon-tooltip {
+  left: 0;
+  right: auto;
+}
+.project-files ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.project-files .project-tree-row,
+.project-files .project-tree-root {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  gap: 7px;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  border-radius: 5px;
+}
+.project-files .project-tree-row {
+  padding: 6px 5px 6px calc(6px + var(--tree-depth) * 14px);
+  min-height: 30px;
+}
+.project-tree-root {
+  color: #30343b;
+  margin-bottom: 4px;
+}
+.project-tree-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+}
+.project-files .project-tree-row:hover {
+  background: #edf0f3;
+}
+.project-files .project-tree-row[aria-current="true"] {
+  background: #e7eff8;
+}
+.project-tree-chevron {
+  color: #848c98;
+  width: 18px;
+  flex: 0 0 18px;
+  text-align: center;
+  font-size: 18px;
+}
+.project-folder-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #94bafe;
+  flex: 0 0 6px;
+  margin-right: 5px;
+}
+.project-tree-notice {
+  color: #8b9199;
+  font-size: 11px;
+  margin: 0;
+}
+
+.project-files .project-tree-reveal {
+  animation: project-tree-flash 600ms ease-in-out 3;
+}
+@keyframes project-tree-flash {
+  50% {
+    background: #b6d6ff;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .project-files .project-tree-reveal {
+    animation: none;
+  }
+}

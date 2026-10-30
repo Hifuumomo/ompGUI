@@ -1,0 +1,163 @@
+.tree-graph-panel {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+  position: relative;
+  overflow: hidden;
+}
+.tree-graph-toolbar {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  padding: 12px 20px;
+  border-bottom: 1px solid #ddd;
+  font-size: 13px;
+}
+.tree-graph-toolbar span {
+  flex: 1;
+  color: #666;
+}
+.tree-graph-toolbar button {
+  white-space: nowrap;
+}
+.tree-graph-surface {
+  flex: 1;
+  overflow: hidden;
+  position: relative;
+  min-height: 240px;
+  background: #f7f8fa;
+  touch-action: none;
+  user-select: none;
+  cursor: grab;
+}
+.tree-graph-surface:active {
+  cursor: grabbing;
+}
+.tree-graph-world {
+  position: absolute;
+  transform-origin: 0 0;
+}
+.tree-graph-world svg {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.tree-graph-world path {
+  fill: none;
+  stroke: #aab2bf;
+  stroke-width: 1.5;
+}
+.tree-graph-world path.active {
+  stroke: #5279c5;
+  stroke-width: 2;
+}
+.tree-graph-node {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  text-align: left;
+  padding: 10px 12px;
+  border: 1px solid #bfc5ce;
+  border-radius: 5px;
+  background: var(--tree-node-background, white);
+  font: 13px/1.4 var(--font-sans, sans-serif);
+  box-shadow: 0 2px 5px #00000008;
+  overflow: hidden;
+  cursor: pointer;
+}
+.tree-graph-node strong {
+  font-size: 12px;
+  color: #606b7b;
+}
+.tree-graph-node span {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.tree-graph-node.active {
+  border-color: #658ed6;
+  background: var(--tree-node-background, #f3f7ff);
+}
+.tree-graph-node.selected,
+.tree-graph-node:focus-visible {
+  outline: 2px solid #3d6bb9;
+  outline-offset: 2px;
+}
+.tree-graph-node[aria-current] strong {
+  color: #315eaa;
+}
+.tree-graph-node[data-role="user"],
+.tree-graph-node[data-role="user"]:hover:not(:disabled) {
+  --tree-node-background: linear-gradient(120deg, #ffd6dc 0%, #ffd6dc 25%, #d5e7ff 75%, #d5e7ff 100%);
+  /* 保留角色配色，覆盖全局 .selected 的重要背景声明。 */
+  background: var(--tree-node-background) !important;
+  color: #25364f;
+  border-radius: 50%;
+  padding: 12px 30px;
+  text-align: center;
+}
+.tree-graph-node[data-role="assistant"] {
+  border-radius: 3px;
+}
+.tree-graph-node[aria-current="location"] {
+  border: 2px solid #168878;
+  background: var(--tree-node-background, #e4fff5);
+  animation: tree-current-pulse 2.2s ease-in-out infinite;
+}
+@keyframes tree-current-pulse {
+  50% {
+    border-color: #4581dd;
+    box-shadow: 0 0 0 5px #4581dd30;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .tree-graph-node[aria-current="location"] {
+    animation: none;
+    box-shadow: 0 0 0 3px #16887830;
+  }
+}
+.tree-graph-preview {
+  max-height: 25%;
+  min-height: 80px;
+  overflow: auto;
+  padding: 12px 20px;
+  border-top: 1px solid #ddd;
+  background: white;
+}
+.tree-graph-preview pre {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font: inherit;
+  margin: 6px 0 0;
+}
+.tree-graph-empty {
+  padding: 24px;
+  color: #666;
+}
+.tree-graph-tooltip {
+  position: fixed;
+  z-index: 50;
+  width: min(420px, calc(100vw - 24px));
+  max-height: min(320px, calc(100vh - 24px));
+  overflow: auto;
+  padding: 14px 18px;
+  border: 1px solid #bfc5ce;
+  border-radius: 8px;
+  background: white;
+  box-shadow: 0 6px 24px #0002;
+  pointer-events: none;
+}
+.tree-graph-tooltip pre {
+  margin: 8px 0 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font: inherit;
+}
+.tree-graph-menu {
+  z-index: 60;
+}

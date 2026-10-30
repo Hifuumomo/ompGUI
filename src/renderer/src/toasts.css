@@ -1,0 +1,70 @@
+.toasts {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+  min-width: 0;
+  width: 100%;
+}
+.toasts:not(:empty) { margin-bottom: 10px; }
+.toast {
+  --toast-color: var(--accent);
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  width: 460px;
+  max-width: 100%;
+  min-width: 0;
+  padding: 10px 10px 10px 12px;
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--toast-color);
+  border-radius: 6px;
+  background: #fff;
+  color: #253036;
+  box-shadow: 0 2px 10px #0000000d;
+  font-size: 12px;
+  line-height: 1.5;
+}
+.toast-warning {
+  --toast-color: #ac7b18;
+  border-color: #eee2b9;
+  border-left-color: var(--toast-color);
+  background: #fffaeb;
+}
+.toast-error {
+  --toast-color: var(--danger);
+  border-color: #efd6d6;
+  border-left-color: var(--toast-color);
+  background: #fff3f3;
+}
+.toast-icon { flex: 0 0 14px; color: var(--toast-color); font-size: 14px; font-weight: 600; text-align: center; }
+.toast-content { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.toast-title { display: block; font-weight: 600; white-space: pre-wrap; }
+.toast-detail { margin: 2px 0 0; color: var(--muted); white-space: pre-wrap; }
+.toast-warning .toast-title, .toast-warning .toast-detail,
+.toast-error .toast-title, .toast-error .toast-detail { color: var(--toast-color); }
+.toast-action-error { margin: 3px 0 0; color: var(--danger); white-space: pre-wrap; }
+.toast-action {
+  margin-top: 6px;
+  padding: 2px 10px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: #fff;
+  color: var(--accent);
+  font-size: 11px;
+  line-height: 1.5;
+}
+.toast-action:hover:not(:disabled) { background: var(--accent-light); }
+.toast-close {
+  flex: 0 0 24px;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font-size: 16px;
+  line-height: 24px;
+}
+.toast-close:hover { color: var(--toast-color); background: #00000008; }
+.toast-action:focus-visible, .toast-close:focus-visible { outline: 2px solid var(--toast-color); outline-offset: 2px; }

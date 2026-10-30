@@ -1,0 +1,46 @@
+.session-tree-view-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 34px;
+}
+.native-tree-screen .tree-graph-toolbar {
+  border-color: var(--border);
+}
+.native-tree-screen .tree-graph-toolbar span {
+  color: var(--tree-muted);
+}
+.native-tree-screen .tree-graph-surface {
+  background: #ffffff;
+}
+.native-tree-screen .tree-graph-node {
+  background: var(--tree-node-background, #ffffff);
+  border-color: #b7c6c9;
+}
+.native-tree-screen .tree-graph-node strong {
+  color: #596970;
+}
+.native-tree-screen .tree-graph-node.active {
+  background: var(--tree-node-background, #f0f7f3);
+  border-color: var(--accent);
+}
+.native-tree-screen .tree-graph-node.selected,
+.native-tree-screen .tree-graph-node:focus-visible {
+  outline-color: var(--tree-accent);
+}
+.native-tree-screen .tree-graph-node[aria-current] strong {
+  color: var(--tree-accent);
+}
+.native-tree-screen .tree-graph-world path {
+  stroke: #b7c6c9;
+}
+.native-tree-screen .tree-graph-world path.active {
+  stroke: var(--tree-accent);
+}
+.native-tree-screen .tree-graph-preview {
+  background: #ffffff;
+  border-color: var(--border);
+}
+.native-tree-screen .tree-graph-empty {
+  color: var(--tree-muted);
+}

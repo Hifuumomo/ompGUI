@@ -1,0 +1,189 @@
+/* 参照 Markdown Preview Enhanced 默认 github-light 主题；双类选择器限定文件预览样式。 */
+.markdown-preview.rich-content {
+  box-sizing: border-box;
+  max-width: 980px;
+  min-height: 100%;
+  margin: 0 auto;
+  padding: 2em;
+  background: #fff;
+  color: #333;
+  font:
+    16px/1.6 -apple-system,
+    "Segoe UI",
+    "Helvetica Neue",
+    Helvetica,
+    Roboto,
+    Arial,
+    "Microsoft YaHei",
+    sans-serif;
+  overflow-wrap: break-word;
+}
+.markdown-preview.rich-content p,
+.markdown-preview.rich-content ul,
+.markdown-preview.rich-content ol,
+.markdown-preview.rich-content dl,
+.markdown-preview.rich-content table,
+.markdown-preview.rich-content .rich-source {
+  margin: 0 0 16px;
+}
+.markdown-preview.rich-content h1,
+.markdown-preview.rich-content h2,
+.markdown-preview.rich-content h3,
+.markdown-preview.rich-content h4,
+.markdown-preview.rich-content h5,
+.markdown-preview.rich-content h6 {
+  margin: 1em 0 16px;
+  color: #000;
+  font-weight: 600;
+  line-height: 1.2;
+}
+.markdown-preview.rich-content h1 {
+  padding-bottom: 0.3em;
+  font-size: 2.25em;
+  font-weight: 300;
+}
+.markdown-preview.rich-content h2 {
+  padding-bottom: 0.3em;
+  font-size: 1.75em;
+  font-weight: 400;
+}
+.markdown-preview.rich-content h3 {
+  font-size: 1.5em;
+  font-weight: 500;
+}
+.markdown-preview.rich-content h4 {
+  font-size: 1.25em;
+}
+.markdown-preview.rich-content h5 {
+  font-size: 1.1em;
+}
+.markdown-preview.rich-content h6 {
+  color: #5c5c5c;
+  font-size: 1em;
+}
+.markdown-preview.rich-content > :first-child {
+  margin-top: 0;
+}
+.markdown-preview.rich-content ul,
+.markdown-preview.rich-content ol {
+  padding-left: 2em;
+}
+.markdown-preview.rich-content li {
+  margin: 0;
+}
+.markdown-preview.rich-content li > p {
+  margin: 0 0 8px;
+}
+.markdown-preview.rich-content input[type="checkbox"] {
+  accent-color: #08c;
+}
+.markdown-preview.rich-content blockquote > :first-child {
+  margin-top: 0;
+}
+.markdown-preview.rich-content blockquote > :last-child {
+  margin-bottom: 0;
+}
+.markdown-preview.rich-content hr {
+  height: 4px;
+  margin: 32px 0;
+  border: 0;
+  background: #d6d6d6;
+}
+.markdown-preview.rich-content :not(pre) > code {
+  padding: 0.2em 0.3em;
+  border: 0;
+  border-radius: 3px;
+  background: #f0f0f0;
+  color: #000;
+  font-size: 0.85em;
+}
+.markdown-preview.rich-content a,
+.markdown-preview.rich-content .rich-link {
+  color: #08c;
+  text-decoration: none;
+}
+.markdown-preview.rich-content a:hover {
+  color: #00a3f5;
+  text-decoration: underline;
+}
+.markdown-preview.rich-content table {
+  display: block;
+  width: 100%;
+  overflow: auto;
+  border-collapse: collapse;
+  word-break: normal;
+}
+.markdown-preview.rich-content th,
+.markdown-preview.rich-content td {
+  padding: 6px 13px;
+  border: 1px solid #d6d6d6;
+}
+.markdown-preview.rich-content th {
+  background: none;
+  color: #000;
+  font-weight: 600;
+}
+.markdown-preview.rich-content tr:nth-child(even) {
+  background: #f8f8f8;
+}
+.markdown-preview.rich-content .rich-source {
+  border: 1px solid #d6d6d6;
+  border-radius: 3px;
+  background: #f5f5f5;
+  color: #333;
+}
+.markdown-preview.rich-content .rich-source-toolbar {
+  border-color: #e3e3e3;
+  background: #f0f0f0;
+  color: #5c5c5c;
+}
+.markdown-preview.rich-content .rich-source-toolbar button {
+  color: #5c5c5c;
+}
+.markdown-preview.rich-content .rich-code {
+  background: transparent;
+  color: #333;
+  font-size: 0.85em;
+  line-height: 1.45;
+}
+.markdown-preview .rich-code .hljs-comment,
+.markdown-preview .rich-code .hljs-quote {
+  color: #708090;
+  font-style: italic;
+}
+.markdown-preview .rich-code .hljs-keyword,
+.markdown-preview .rich-code .hljs-selector-tag,
+.markdown-preview .rich-code .hljs-literal {
+  color: #07a;
+}
+.markdown-preview .rich-code .hljs-string,
+.markdown-preview .rich-code .hljs-regexp,
+.markdown-preview .rich-code .hljs-addition {
+  color: #690;
+}
+.markdown-preview .rich-code .hljs-number,
+.markdown-preview .rich-code .hljs-built_in,
+.markdown-preview .rich-code .hljs-type {
+  color: #905;
+}
+.markdown-preview .rich-code .hljs-title,
+.markdown-preview .rich-code .hljs-section,
+.markdown-preview .rich-code .hljs-attribute {
+  color: #dd4a68;
+}
+.markdown-preview .rich-code .hljs-variable,
+.markdown-preview .rich-code .hljs-attr,
+.markdown-preview .rich-code .hljs-name {
+  color: #e90;
+}
+.markdown-preview .rich-code .hljs-deletion {
+  color: #c41a16;
+}
+.markdown-preview-image {
+  max-width: 100%;
+  height: auto;
+}
+.markdown-preview-image-note {
+  color: #7a888c;
+  font-size: 0.85em;
+}

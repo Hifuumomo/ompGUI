@@ -1,0 +1,40 @@
+.plan-status-card {
+  --plan-status-color: var(--accent);
+  min-width: 0;
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--plan-status-color);
+  border-radius: 7px;
+  background: color-mix(in srgb, var(--plan-status-color) 4%, var(--surface, #fff));
+  overflow: hidden;
+}
+.plan-status-info { --plan-status-color: var(--muted); }
+.plan-status-warning { --plan-status-color: #ae7b19; }
+.plan-status-error { --plan-status-color: var(--danger); }
+.plan-status-header { align-items: stretch; gap: 0; }
+.plan-status-toggle, .plan-status-summary {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-width: 0;
+  padding: 11px 15px;
+  color: var(--plan-status-color);
+  text-align: left;
+  font: inherit;
+}
+.plan-status-toggle { border: 0; border-radius: 0; background: transparent; cursor: pointer; }
+.plan-status-toggle:hover { background: color-mix(in srgb, var(--plan-status-color) 6%, transparent); }
+.plan-status-toggle:focus-visible { outline: 2px solid var(--plan-status-color); outline-offset: -3px; }
+.plan-status-metadata { color: var(--muted); margin-left: 12px; }
+.plan-status-location { display: flex; flex-wrap: wrap; gap: 5px; margin-left: auto; color: var(--muted); min-width: 0; }
+.plan-status-location code { overflow-wrap: anywhere; }
+.plan-status-location time { white-space: nowrap; }
+.plan-status-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 7px 12px 7px 0; }
+.plan-status-actions button { font-size: 12px; padding: 3px 9px; }
+.plan-status-body { border-top: 1px solid var(--border); padding: 12px 25px; max-height: 60vh; overflow: auto; }
+.plan-status-body > :first-child, .plan-status-body .rich-content > :first-child { margin-top: 0; }
+.plan-status-body > :last-child, .plan-status-body .rich-content > :last-child { margin-bottom: 0; }
+.plan-status-body > pre { white-space: pre-wrap; overflow-wrap: anywhere; }
+.plan-status-footer { border-top: 1px solid var(--border); padding: 8px 25px; color: var(--muted); font-size: 12px; }
+.plan-status-card > .inline-error { margin: 8px 15px; }

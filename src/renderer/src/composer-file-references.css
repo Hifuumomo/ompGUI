@@ -1,0 +1,83 @@
+.composer-file-references {
+  position: relative;
+}
+
+.composer-box .composer-file-references > textarea {
+  display: block;
+  position: relative;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+  caret-color: #253036;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  word-break: normal;
+  tab-size: 8;
+}
+
+.composer-box .composer-file-references > textarea::placeholder {
+  -webkit-text-fill-color: #a0acae;
+}
+
+.composer-reference-viewport {
+  position: absolute;
+  top: 0;
+  left: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.composer-reference-content {
+  width: 100%;
+  padding: 12px 14px 6px;
+  color: #253036;
+  font: inherit;
+  font-size: 13px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  word-break: normal;
+  tab-size: 8;
+  user-select: none;
+}
+
+/* 引用必须占据与原文完全相同的字形宽度；图标和错误不能挤动后续文本。 */
+.composer-reference-content .rich-file-link {
+  display: inline;
+  font: inherit;
+  white-space: inherit;
+  pointer-events: auto;
+  cursor: text;
+}
+
+.composer-file-references.is-control-pressed .rich-file-link {
+  cursor: pointer;
+}
+
+.composer-reference-content .rich-file-link > .file-link-icon {
+  display: none;
+}
+
+.composer-reference-content .rich-link-error {
+  position: absolute;
+  z-index: 1;
+  padding: 4px 8px;
+  color: var(--danger);
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  white-space: normal;
+}
+
+/* 原生拖选期间链接不截获指针；输入法候选与组合标记由 textarea 原样绘制。 */
+.composer-file-references.is-selecting .rich-file-link {
+  pointer-events: none;
+}
+
+.composer-file-references.is-composing .composer-reference-viewport {
+  visibility: hidden;
+}
+
+.composer-box .composer-file-references.is-composing > textarea {
+  color: inherit;
+  -webkit-text-fill-color: currentColor;
+}

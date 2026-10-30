@@ -1,0 +1,93 @@
+/* 目录相对 .conversation 定位，不随正文滚动。 */
+.conversation-outline {
+  position: absolute;
+  left: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 5;
+}
+.outline-rail {
+  display: flex;
+  flex-direction: column;
+  max-height: min(60vh, 440px);
+  overflow-y: auto;
+  scrollbar-width: none;
+  padding: 4px 0;
+}
+.outline-rail::-webkit-scrollbar {
+  display: none;
+}
+.outline-rail > .outline-item,
+.outline-rail > .outline-item:hover {
+  flex: none;
+  display: flex;
+  align-items: center;
+  width: 30px;
+  height: 12px;
+  min-height: 0;
+  margin: 0;
+  padding: 0 4px;
+  border: 0;
+  background: none;
+  box-shadow: none;
+  cursor: pointer;
+}
+.outline-item > span {
+  display: block;
+  width: 10px;
+  height: 2px;
+  border-radius: 1px;
+  background: #c5cdcf;
+  transition:
+    width 0.18s ease,
+    background-color 0.18s ease;
+}
+.outline-item[aria-current="location"] > span {
+  width: 16px;
+  background: #2a393d;
+}
+.outline-item:hover > span,
+.outline-item:focus-visible > span {
+  width: 22px;
+  background: #2a393d;
+}
+.outline-card {
+  position: absolute;
+  left: 34px;
+  transform: translateY(-50%);
+  width: min(340px, 60vw);
+  padding: 10px 12px;
+  border: 1px solid #e3e8e9;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 8px 24px rgba(20, 35, 40, 0.12);
+  pointer-events: none;
+  font-size: 13px;
+  line-height: 1.5;
+}
+.outline-card strong {
+  display: block;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-weight: 600;
+  color: #1f2d30;
+}
+.outline-card p {
+  display: -webkit-box;
+  margin: 4px 0 0;
+  overflow: hidden;
+  color: #7a888c;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+}
+/* 跳转时提示词顶部留白。 */
+.conversation-user {
+  scroll-margin-top: 20px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .outline-item > span {
+    transition: none;
+  }
+}

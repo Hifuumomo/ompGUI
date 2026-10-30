@@ -1,0 +1,22 @@
+.jobs-pane,
+.code-review-panel,
+.code-review-files { position: relative; }
+.code-review-body > .code-review-files { min-width: 0; max-width: none; }
+.pane-resize-handle,
+.code-review-panel .pane-resize-handle {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  z-index: 5;
+  width: 8px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  cursor: col-resize;
+  touch-action: none;
+}
+.pane-resize-left { left: -4px; }
+.pane-resize-right { right: -4px; }
+.pane-resize-handle:hover,
+.pane-resize-handle:focus-visible { background: #3975c644; outline: none; }

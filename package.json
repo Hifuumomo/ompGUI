@@ -1,0 +1,109 @@
+{
+  "name": "omp-desktop",
+  "version": "1.0.0",
+  "private": true,
+  "description": "中文 oh-my-pi 桌面工作台，使用本机 omp CLI 引擎与原生会话",
+  "author": "OMP Desktop Contributors",
+  "license": "MIT",
+  "main": "out/main/index.js",
+  "engines": {
+    "node": ">=24.0.0"
+  },
+  "scripts": {
+    "dev": "electron-vite dev",
+    "build": "electron-vite build",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run --environment jsdom",
+    "check": "npm run typecheck && npm run test && npm run build",
+    "package": "npm run build && electron-builder --win --x64 --dir",
+    "dist": "npm run build && electron-builder --win portable --x64"
+  },
+  "dependencies": {
+    "@milkdown/kit": "7.22.3",
+    "diff": "^9.0.0",
+    "dompurify": "^3.4.16",
+    "highlight.js": "^11.12.0",
+    "katex": "^0.16.47",
+    "mermaid": "12.1.0",
+    "micromark-util-character": "^2.1.1",
+    "micromark-util-symbol": "^2.0.1",
+    "pdfjs-dist": "6.4.299",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "react-markdown": "^10.1.0",
+    "rehype-katex": "^7.0.1",
+    "remark-cjk-friendly": "^2.3.2",
+    "remark-gfm": "^4.0.1",
+    "remark-math": "^6.0.0"
+  },
+  "devDependencies": {
+    "@types/katex": "^0.16.8",
+    "@types/node": "^24.19.2",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^5.2.0",
+    "electron": "44.7.0",
+    "electron-builder": "26.15.3",
+    "electron-vite": "5.0.0",
+    "jsdom": "~27.4.0",
+    "prettier": "^3.9.10",
+    "typescript": "~5.9.3",
+    "vite": "^7.3.7",
+    "vitest": "^5.0.3"
+  },
+  "build": {
+    "appId": "OMP Desktop",
+    "productName": "OMP Desktop",
+    "asar": true,
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "out/main/**/*",
+      "out/preload/**/*",
+      "out/renderer/**/*",
+      "package.json",
+      "!**/*.map",
+      "!**/.env*",
+      "!**/*.{pem,key,pfx,p12}",
+      "!**/{test,tests,__tests__,__mocks__}/**",
+      "!**/*.{test,spec}.{js,cjs,mjs,ts,tsx}",
+      "!**/{README,CHANGELOG,CONTRIBUTING}*"
+    ],
+    "extraResources": [
+      {
+        "from": "resources/gui-bridge.mjs",
+        "to": "gui-bridge.mjs"
+      },
+      {
+        "from": "resources",
+        "to": ".",
+        "filter": [
+          "model-hub*.mjs",
+          "agents-hub*.mjs",
+          "subagent-history.mjs",
+          "seance.mjs",
+          "plan-mode*.mjs",
+          "tree-navigation.mjs",
+          "tree-deletion.mjs",
+          "session-ops.mjs"
+        ]
+      }
+    ],
+    "portable": {
+      "unpackDirName": true
+    },
+    "win": {
+      "target": [
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "signAndEditExecutable": false,
+      "artifactName": "OMP-Desktop-${version}-${arch}.${ext}"
+    }
+  }
+}

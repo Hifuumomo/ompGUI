@@ -1,0 +1,2 @@
+.context-actions-menu { z-index: 1500; max-width: calc(100vw - 8px); max-height: calc(100vh - 8px); overflow: auto; }
+.context-actions-title { margin: 4px 10px; font-size: 12px; color: var(--muted); }

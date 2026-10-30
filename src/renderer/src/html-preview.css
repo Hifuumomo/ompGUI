@@ -1,0 +1,8 @@
+/* 白底画布模拟浏览器默认页面；高度随侧栏源码区。 */
+.html-preview {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  background: #fff;
+}

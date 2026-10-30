@@ -1,0 +1,186 @@
+/* 主编辑区保持挂载；显式 hidden 优先于原有 flex/grid 声明。 */
+.composer-area .main-composer-region[hidden],
+.composer-area [hidden] { display: none !important; }
+.composer-area.btw-expanded {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  max-height: var(--btw-available-height, 65vh);
+  overflow: hidden;
+  flex-shrink: 0;
+  box-sizing: border-box;
+}
+.composer-area.btw-expanded > .btw-shared-content {
+  flex: 0 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.btw-panel {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  max-height: var(--btw-available-height, 65vh);
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--panel-bg, #fff);
+  color: inherit;
+  font: inherit;
+  line-height: 1.5;
+}
+.btw-panel button,
+.btw-panel-menu button,
+.btw-status-bar button { font: inherit; line-height: 1.4; }
+.btw-panel button,
+.btw-panel-menu button { padding: 4px 9px; min-width: 0; }
+.btw-panel:focus-visible,
+.btw-panel button:focus-visible,
+.btw-panel-list:focus-visible,
+.btw-panel-reader:focus-visible,
+.btw-panel-menu button:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.btw-panel-header,
+.btw-panel-footer,
+.btw-panel-transfer { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 10px; flex-shrink: 0; padding: 8px 12px; }
+.btw-panel-header { border-bottom: 1px solid var(--border); }
+.btw-panel-header > strong { flex: 1 1 120px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; min-width: 0; font-size: 1em; color: var(--accent); }
+.btw-panel-actions { display: flex; align-items: center; flex-wrap: wrap; justify-content: flex-end; gap: 6px; min-width: 0; }
+.btw-panel kbd { color: var(--muted); font: inherit; font-size: .85em; }
+.btw-panel-body { display: flex; flex: 1 1 360px; min-height: 0; min-width: 0; max-height: min(360px, 40vh); overflow: hidden; }
+.btw-panel-list { flex: 0 0 min(260px, 35%); min-width: 0; min-height: 0; overflow-y: auto; overscroll-behavior: contain; border-right: 1px solid var(--border); }
+.btw-panel-topic { display: flex; flex-direction: column; gap: 3px; padding: 9px 12px; cursor: pointer; border-bottom: 1px solid var(--border); }
+.btw-panel-topic > span { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.btw-panel-topic > small { color: var(--muted); }
+.btw-panel-topic[aria-selected="true"] { background: color-mix(in srgb, var(--accent) 9%, transparent); box-shadow: inset 3px 0 var(--accent); }
+.btw-panel-topic:hover { background: color-mix(in srgb, var(--accent) 5%, transparent); }
+.btw-panel-detail { position: relative; display: flex; flex-direction: column; flex: 1; min-width: 0; min-height: 0; overflow: hidden; }
+.btw-panel-reader { flex: 1; min-width: 0; min-height: 0; overflow-y: auto; overflow-x: hidden; overscroll-behavior: contain; overflow-anchor: none; padding: 10px 12px; }
+/* 新主题没有答案正文时按内容收缩；连接/历史提示仍正常可读。 */
+.btw-panel-compact .btw-panel-body { flex: 0 1 auto; }
+.btw-panel-compact .btw-panel-detail { flex: 1 1 auto; }
+.btw-panel-compact .btw-panel-reader { flex: 0 1 auto; }
+.btw-panel-compact .btw-panel-reader:empty { padding-block: 0; }
+.btw-panel-back { align-self: flex-start; flex-shrink: 0; margin: 5px 8px; }
+.btw-panel-turn + .btw-panel-turn { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--border); }
+.btw-panel-turn h3 { font-size: 1em; white-space: pre-wrap; overflow-wrap: anywhere; margin: 0 0 8px; }
+.btw-panel-turn .rich-content { font-size: inherit; min-width: 0; max-width: 100%; overflow-wrap: anywhere; }
+.btw-panel-turn .rich-content pre { max-width: 100%; overflow-x: auto; white-space: pre; }
+.btw-panel-turn .rich-content img,
+.btw-panel-turn .rich-content table { max-width: 100%; }
+.btw-panel-hint { color: var(--muted); margin: 0; }
+.btw-panel > .btw-panel-error { flex: 0 1 auto; min-height: 0; overflow-y: auto; padding: 5px 12px; }
+.btw-panel-error { color: var(--danger); overflow-wrap: anywhere; }
+.btw-panel-error button { margin-left: 8px; }
+.btw-panel-latest { position: absolute; right: 12px; bottom: 6px; background: var(--panel-bg, white); box-shadow: 0 2px 10px #0002; }
+.btw-panel-transfer { padding-block: 5px; border-top: 1px solid var(--border); }
+.btw-panel-editor { display: flex; flex-direction: column; flex: 0 1 auto; min-height: calc(2.85em + 24px); box-sizing: border-box; padding: 6px 12px 0; }
+.btw-panel-editor label { margin: 0 0 4px; color: var(--muted); font: inherit; font-size: .9em; flex-shrink: 0; }
+.btw-panel-editor textarea {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  min-height: calc(1.5em + 14px);
+  max-height: calc(6em + 14px);
+  flex: 0 1 auto;
+  padding: 6px 9px;
+  margin: 0;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  resize: none;
+  overflow-y: auto;
+  font: inherit;
+  line-height: 1.5;
+  color: inherit;
+  background: inherit;
+}
+.btw-panel-editor textarea:focus { outline-color: var(--accent); }
+.btw-panel-footer { justify-content: space-between; }
+.btw-panel-footer > span { color: var(--muted); font-size: .8em; }
+.btw-panel-footer .primary { background: var(--accent); color: white; }
+.btw-panel-narrow .btw-panel-list { flex: 1; border-right: 0; }
+.btw-panel-narrow .btw-panel-footer > span { flex-basis: 100%; }
+/* 短窗先压正文，再将编辑区缩到一行；标签仍供辅助技术读取。 */
+.btw-panel-short .btw-panel-header,
+.btw-panel-short .btw-panel-footer,
+.btw-panel-short .btw-panel-transfer { padding: 4px 6px; gap: 4px 6px; }
+.btw-panel-short .btw-panel-editor { padding: 4px 6px 0; min-height: calc(1.5em + 18px); }
+.btw-panel-short .btw-panel-editor label,
+.btw-panel-short .btw-panel-footer > span { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.btw-panel-menu { position: fixed; z-index: 1000; min-width: 180px; max-width: calc(100vw - 16px); padding: 5px; border: 1px solid var(--border); border-radius: 8px; background: var(--panel-bg, white); box-shadow: 0 8px 28px #0003; color: inherit; }
+.btw-panel-menu > button { display: block; width: 100%; text-align: left; border: 0; background: transparent; white-space: normal; }
+.btw-panel-menu > button:hover { background: color-mix(in srgb, var(--accent) 9%, transparent); }
+.btw-status-bar { display: flex; align-items: center; gap: 8px; border: 1px solid var(--border); border-radius: 9px; padding: 5px 8px; margin-bottom: 8px; color: var(--accent); background: color-mix(in srgb, var(--accent) 4%, transparent); }
+.btw-status-bar .btw-status-open { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex: 1; min-width: 0; border: 0; background: transparent; text-align: left; overflow-wrap: anywhere; }
+.btw-status-open > span { flex-shrink: 0; color: var(--muted); }
+
+/* 历史沿用同一 React 树，固定层只接管可视区域，不改变主会话草稿的挂载。 */
+.btw-history-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 35;
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+  padding: 12px;
+  box-sizing: border-box;
+  overflow: hidden;
+  background: var(--panel-bg, #fff);
+  color: var(--text, inherit);
+  isolation: isolate;
+}
+.btw-panel-history {
+  width: 100%;
+  height: 100%;
+  max-height: none;
+  border-radius: 5px;
+  box-shadow: none;
+}
+.btw-panel-history .btw-panel-header { padding: 10px 14px; }
+.btw-panel-history .btw-panel-body { flex: 1 1 0; max-height: none; }
+.btw-panel-history .btw-panel-list {
+  position: relative;
+  flex: 0 0 min(42%, 46ch);
+}
+.btw-pane-title {
+  flex-shrink: 0;
+  margin: 0;
+  padding: 8px 14px;
+  border-bottom: 1px solid var(--border);
+  background: var(--panel-bg, #fff);
+  color: var(--muted);
+  font-size: .88em;
+  font-weight: 600;
+}
+.btw-panel-list > .btw-pane-title { position: sticky; top: 0; z-index: 1; }
+.btw-panel-history .btw-panel-topic { gap: 5px; padding: 12px 14px; }
+.btw-panel-history .btw-panel-topic[aria-selected="true"] {
+  background: color-mix(in srgb, var(--accent) 15%, var(--panel-bg, #fff));
+}
+.btw-panel-history .btw-panel-topic > span {
+  white-space: normal;
+  overflow-wrap: anywhere;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+.btw-topic-meta,
+.btw-turn-meta { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 12px; color: var(--muted); }
+.btw-topic-meta { justify-content: space-between; font-size: .78em; }
+.btw-turn-meta { font-size: .82em; margin-bottom: 18px; }
+.btw-panel-history .btw-panel-reader { padding: 20px 24px; scrollbar-gutter: stable; }
+.btw-panel-history .btw-panel-turn + .btw-panel-turn { margin-top: 28px; padding-top: 24px; }
+.btw-panel-history .btw-turn-label { margin: 18px 0 8px; color: var(--accent); font-size: .85em; font-weight: 600; }
+.btw-panel-history .btw-panel-turn > h3:not(.btw-turn-label) { font-weight: 500; margin-bottom: 20px; }
+.btw-panel-history .btw-panel-editor { flex-shrink: 0; padding: 10px 20px; border-top: 1px solid var(--border); }
+.btw-panel-history .btw-panel-latest { position: static; flex-shrink: 0; align-self: flex-end; margin: 4px 16px; box-shadow: none; }
+.btw-panel-history .btw-panel-transfer { justify-content: flex-end; }
+.btw-panel-history .btw-panel-footer { border-top: 1px solid var(--border); }
+.btw-panel-history.btw-panel-narrow .btw-panel-list { flex: 1; }
+.btw-panel-history.btw-panel-narrow .btw-panel-reader { padding: 14px; }
+@media (max-width: 640px), (max-height: 420px) {
+  .btw-history-layer { padding: 4px; }
+  .btw-panel-history .btw-panel-header { padding: 6px 8px; }
+  .btw-panel-history .btw-panel-editor { padding: 6px 8px; }
+}

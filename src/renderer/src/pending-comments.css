@@ -1,0 +1,20 @@
+.pending-comments { display: flex; align-items: center; gap: .4rem; overflow-x: auto; margin-bottom: .6rem; padding: 2px; }
+.pending-comment-card { flex: 0 0 auto; min-width: 0; border: 1px solid var(--border); border-radius: .6rem; padding: .15rem .3rem; background: white; font-size: .86rem; }
+.pending-comment-card > header { display: flex; align-items: center; gap: .2rem; }
+.pending-comment-label { border: 0; background: transparent; color: var(--accent); padding: .25rem .35rem; white-space: nowrap; font-weight: 600; }
+.pending-comment-label:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.pending-comment-actions { display: flex; gap: .1rem; }
+.pending-comment-actions button { display: grid; place-items: center; width: 1.7rem; height: 1.7rem; padding: .3rem; border: 0; background: transparent; color: var(--muted); }
+.pending-comment-actions button:hover { color: var(--accent); background: var(--accent-light); }
+.pending-comment-actions button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.pending-comment-actions svg { width: 1rem; height: 1rem; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+.pending-comment-popover { position: fixed; z-index: 1000; box-sizing: border-box; padding: .75rem .9rem; overflow: auto; border: 1px solid var(--border); border-radius: .75rem; background: white; color: #253036; box-shadow: 0 5px 20px #0002; font-size: .86rem; }
+.pending-comment-popover > strong { display: block; color: var(--accent); margin-bottom: .25rem; }
+.pending-comment-source { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); }
+.pending-comment-popover p { margin: .4rem 0; overflow-wrap: anywhere; }
+.pending-comment-excerpt { color: var(--muted); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.pending-comment-body { white-space: pre-wrap; max-height: 8rem; overflow: auto; }
+.pending-comment-popover details { margin-top: .5rem; color: var(--muted); font-size: .8rem; }
+.pending-comment-popover summary { cursor: pointer; }
+.pending-comment-popover pre { max-height: 10rem; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; }
+.pending-comment-image { display: block; max-width: 100%; max-height: 160px; width: auto; height: auto; object-fit: contain; margin: .5rem 0; }

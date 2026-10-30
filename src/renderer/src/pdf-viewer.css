@@ -1,0 +1,125 @@
+:root {
+  font-family: system-ui, sans-serif;
+  font-size: calc(14px * var(--host-scale, 1));
+  color: #e2e8f0;
+  background: #272b33;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body, #root, .pdf-reader {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+}
+.pdf-reader { display: flex; flex-direction: column; }
+.pdf-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 3px;
+  padding: 5px;
+  background: #22262e;
+  border-bottom: 1px solid #475569;
+  z-index: 3;
+  flex: none;
+}
+.pdf-toolbar button, .pdf-toolbar input, .pdf-password button, .pdf-password input {
+  font: inherit;
+  color: inherit;
+  background: #343b47;
+  border: 1px solid #536072;
+  border-radius: 4px;
+  min-height: 28px;
+}
+.pdf-toolbar button { min-width: 26px; padding: 2px 6px; }
+.pdf-toolbar button:disabled { opacity: .4; }
+.pdf-toolbar input[type=number] { width: 48px; text-align: center; }
+.pdf-toolbar .pdf-find { width: 90px; flex: 1; min-width: 55px; }
+.pdf-body { position: relative; flex: 1; min-height: 0; display: flex; }
+.pdf-container {
+  position: absolute;
+  inset: 0;
+  overflow: auto;
+  outline: none;
+  --viewer-container-height: 100vh;
+}
+.with-thumbnails .pdf-container { left: 150px; }
+.pdf-body aside { width: 150px; overflow: auto; padding: 8px; z-index: 2; background: #20252d; }
+.pdf-body aside[hidden] { display: none; }
+.pdf-body aside button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 132px;
+  min-height: 180px;
+  padding: 1px;
+  margin: 0 0 8px;
+  color: #dce5f2;
+  background: #424c5a;
+  border: 1px solid #64748b;
+  cursor: pointer;
+}
+.pdf-body aside canvas { max-width: 128px; }
+.pdfViewer .page { box-sizing: content-box; }
+.pdf-container.picking { cursor: crosshair; }
+.pdf-container.picking .textLayer, .pdf-container.picking .annotationLayer { pointer-events: none; }
+.pdf-overlays { position: fixed; inset: 0; pointer-events: none; z-index: 5; overflow: hidden; }
+.pdf-candidate, .pdf-drag {
+  position: absolute;
+  border: 2px solid #60a5fa;
+  background: #3b82f61f;
+  color: #fff;
+  box-shadow: 0 0 0 1px #18283d;
+  pointer-events: none;
+  font-size: calc(12px * var(--host-scale, 1));
+  text-shadow: 0 1px 2px #000;
+}
+.pdf-candidate { padding: 2px; }
+.pdf-marker {
+  position: absolute;
+  pointer-events: auto;
+  min-width: 23px;
+  height: 23px;
+  border-radius: 50%;
+  background: #2563eb;
+  border: 1px solid white;
+  color: #fff;
+  box-shadow: 0 1px 4px #0008;
+  cursor: pointer;
+  font: 600 12px system-ui;
+  font-size: calc(12px * var(--host-scale, 1));
+  transform: translate(-4px, -4px);
+}
+.pdf-status {
+  position: fixed;
+  bottom: 6px;
+  left: 8px;
+  right: 8px;
+  z-index: 6;
+  pointer-events: none;
+  font-size: calc(12px * var(--host-scale, 1));
+  padding: 5px 8px;
+  border-radius: 4px;
+  background: #172030ed;
+  color: #e0eaff;
+  max-height: 72px;
+  overflow: auto;
+}
+.pdf-password { position: fixed; inset: 0; display: grid; place-items: center; background: #10151be8; z-index: 10; }
+.pdf-password form {
+  width: min(300px, 90vw);
+  padding: 18px;
+  background: #293442;
+  border: 1px solid #64748b;
+  border-radius: 8px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.pdf-password h2, .pdf-password p { width: 100%; margin: 0 0 8px; }
+.pdf-password input { width: 100%; padding: 5px; }
+.pdf-password h2 { font-size: calc(16px * var(--host-scale, 1)); }
+.pdfViewer .annotationLayer .fileAttachmentAnnotation, .pdfViewer .annotationLayer .popupAnnotation { display: none; }
+.pdfViewer .annotationLayer input, .pdfViewer .annotationLayer select, .pdfViewer .annotationLayer textarea { pointer-events: none; }
