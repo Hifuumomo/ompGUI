@@ -1,9 +1,5 @@
 node_modules/
-docs/*
-!docs/plan.md
-!docs/CODE_REVIEW.md
-!docs/img/
-!docs/img/**
+/docs/
 out/
 release/
 /temp/
