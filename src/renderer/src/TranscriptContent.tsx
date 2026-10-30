@@ -12,6 +12,7 @@ import {
   type OutputMode,
 } from "./output-file-links";
 import { RichContent } from "./RichContent";
+import { stripCommentPreamble } from "./prompt-context";
 import type { PlanApprovalPresentation } from "./plan-approval";
 import { planApprovalPresentation } from "./plan-approval";
 import { parsePlanStatus } from "./plan-status";
@@ -328,12 +329,15 @@ function messageContent(message: AgentMessage) {
       {report ? <RichContent text={report[1].trim()} /> : <pre>{message.content}</pre>}
     </section>;
   }
+  // 评论开头说明只在显示层去掉；会话数据和发给模型的文本不变。
   if (typeof message.content === "string")
-    return <RichContent text={message.content} />;
-  if (Array.isArray(message.content))
+    return <RichContent text={message.role === "user" ? stripCommentPreamble(message.content) : message.content} />;
+  if (Array.isArray(message.content)) {
+    const firstText = message.role === "user" ? message.content.findIndex((part) => part.type === "text") : -1;
     return message.content.map((part, index) => (
-      <ContentPart key={index} part={part} />
+      <ContentPart key={index} part={index === firstText ? { ...part, text: stripCommentPreamble(part.text ?? "") } : part} />
     ));
+  }
   return undefined;
 }
 

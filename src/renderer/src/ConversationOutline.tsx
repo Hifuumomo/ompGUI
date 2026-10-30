@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type RefObject } from "react";
-import { messageText } from "./session";
+import { displayMessageText } from "./session";
 import type { TranscriptUnit } from "./transcript-types";
 import "./conversation-outline.css";
 
@@ -14,7 +14,7 @@ export function outlineEntries(units: TranscriptUnit[]): OutlineEntry[] {
   const entries: OutlineEntry[] = [];
   for (const unit of units) {
     if (unit.kind !== "message") continue;
-    const text = messageText(unit.message).replace(/\s+/g, " ").trim();
+    const text = displayMessageText(unit.message).replace(/\s+/g, " ").trim();
     if (!text) continue;
     if (unit.message.role === "user") {
       entries.push({ key: unit.key, title: text, preview: "" });

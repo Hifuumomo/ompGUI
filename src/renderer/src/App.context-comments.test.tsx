@@ -218,10 +218,28 @@ it("发送被拒保留token和评论，接受后仅向模型发送完整快照",
   expect(messages).toHaveLength(2);
   expect(messages[0]).toContain("原始代码");
   expect(messages[0]).toContain("解释引用");
-  expect(messages[0]).toContain("评论1");
+  expect(messages[0]).toContain('<comment id="1">');
   expect(messages[1]).toBe(messages[0]);
   expect(composer().value).toBe("");
   expect(container.querySelector('[aria-label="待发送评论"]')).toBeNull();
+});
+it("发送被接受后新评论从1重新编号，同一草稿内删除后不复用编号", async () => {
+  const api = await mount();
+  await connectFixture(api);
+  const fallback = api.request.getMockImplementation()!;
+  api.request.mockImplementation(async (command) => command.type === "prompt" ? { agentInvoked: true } : fallback(command));
+  await addComment();
+  await addComment();
+  await addComment();
+  expect(composer().value).toBe("[评论1]\n\n[评论2]\n\n[评论3]");
+  await act(async () => container.querySelector<HTMLButtonElement>('[aria-label="删除评论3"]')!.click());
+  await addComment();
+  expect(composer().value).toContain("[评论4]");
+  expect(composer().value).not.toContain("[评论3]");
+  await submit();
+  expect(composer().value).toBe("");
+  await addComment();
+  expect(composer().value).toBe("[评论1]");
 });
 it("旧提交返回不会清除用户后来编辑的草稿和评论", async () => {
   const api = await mount();
@@ -342,8 +360,8 @@ it("原附件与重复图像评论按首次 token 顺序发送，被拒后可原
   expect(container.querySelectorAll(".pending-comment-card")).toHaveLength(2);
   expect(submitted[0].images?.map(({ data }) => data)).toEqual(["aW1hZ2U=", region.image.data, figure.image!.data]);
   const text = submitted[0].message!;
-  expect([...text.matchAll(/附图：本条消息第(\d+)张图片/g)].map((match) => Number(match[1]))).toEqual([2, 3, 2]);
-  expect(text.indexOf("评论2")).toBeLessThan(text.indexOf("评论1"));
+  expect([...text.matchAll(/"image":(\d+)\}/g)].map((match) => Number(match[1]))).toEqual([2, 3, 2]);
+  expect(text.indexOf('<comment id="2">')).toBeLessThan(text.indexOf('<comment id="1">'));
   expect(text).toContain(region.url);
   expect(text).toContain(figure.url);
   expect(text).toContain("图内标签");
@@ -378,7 +396,7 @@ it.each([{ ctrlKey: false, behavior: "steer" }, { ctrlKey: true, behavior: "foll
     expect(container.querySelector(".pending-comment-card")).not.toBeNull();
     expect(submitted[0].streamingBehavior).toBe(behavior);
     expect(submitted[0].images?.map(({ data }) => data)).toEqual([figure.image!.data]);
-    expect(submitted[0].message).toContain("附图：本条消息第1张图片");
+    expect(submitted[0].message).toContain('"image":1}');
     reject = false;
     await send();
     expect(submitted[1]).toEqual(submitted[0]);
@@ -421,7 +439,7 @@ it("转义及失活图像 token 不附图，只发送当前有效评论的图片
   expect(submitted[0].images?.map(({ data }) => data)).toEqual([region.image.data]);
   expect(submitted[0].message).toContain("字面 [评论1]");
   expect(submitted[0].message).not.toContain(figure.url);
-  expect(submitted[0].message).toContain("附图：本条消息第1张图片");
+  expect(submitted[0].message).toContain('"image":1}');
 });
 
 it("GUI slash 带图像评论 token 时拒绝执行且保留完整草稿", async () => {

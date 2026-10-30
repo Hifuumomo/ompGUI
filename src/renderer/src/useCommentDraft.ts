@@ -7,7 +7,6 @@ import { activeDraftComments, addDraftComment, deleteDraftComment, newCommentDra
 export function useCommentDraft() {
   const [state, setState] = useState(newCommentDraft);
   const current = useRef(state);
-  const nextNumber = useRef(1);
   const commit = useCallback((next: CommentDraft) => { current.current = next; setState(next); }, []);
   const setDraft: Dispatch<SetStateAction<string>> = useCallback((value) => {
     const previous = current.current;
@@ -16,8 +15,7 @@ export function useCommentDraft() {
   }, [commit]);
   const resetDraft = useCallback((text = "") => commit(newCommentDraft(text)), [commit]);
   const addComment = useCallback((context: PromptContext, comment: string, sourceAnchor?: CommentSourceAnchor) => {
-    const next = addDraftComment(current.current, nextNumber.current, context, comment, sourceAnchor);
-    nextNumber.current += 1;
+    const next = addDraftComment(current.current, current.current.nextNumber, context, comment, sourceAnchor);
     commit(next);
   }, [commit]);
   const editComment = useCallback((id: string, comment: string) => commit(updateDraftComment(current.current, id, comment)), [commit]);

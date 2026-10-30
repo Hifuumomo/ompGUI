@@ -4,6 +4,7 @@ import { homedir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import type { SessionSummary } from "../shared/protocol";
+import { stripCommentPreamble } from "../shared/prompt-context";
 
 /**
  * 解析原生会话文件的元数据，不读取或改写历史。
@@ -66,7 +67,7 @@ async function parseSessionHeader(file: string): Promise<SessionSummary> {
       id: first.id,
       cwd: typeof first.cwd === "string" ? first.cwd : "",
       title:
-        title?.split(/\r?\n/)[0].slice(0, 140) || `未命名会话 · ${timestamp}`,
+        stripCommentPreamble(title ?? "").split(/\r?\n/)[0].slice(0, 140) || `未命名会话 · ${timestamp}`,
       timestamp,
       modified: stat.mtimeMs,
       parentSession:

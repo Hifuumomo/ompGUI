@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type MouseEvent } from "react";
 import type { TreeNode, SessionEntry } from "../../shared/protocol";
-import { messageText } from "./session";
+import { displayMessageText } from "./session";
 import {
   graphLink,
   layoutTreeGraph,
@@ -59,7 +59,7 @@ interface GraphMenuTarget {
 /** 读取节点完整内容，预览不截断。[in] node：节点。返回值：文本。 */
 function nodeText(node: GraphNode): string {
   if (node.entry.message)
-    return messageText(node.entry.message) || node.entry.message.role;
+    return displayMessageText(node.entry.message) || node.entry.message.role;
   return String(node.entry.summary ?? node.label ?? node.entry.type);
 }
 

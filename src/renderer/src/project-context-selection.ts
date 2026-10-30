@@ -26,6 +26,18 @@ export function sourceContextRange(content: string, start: number, end: number):
   return { text: content.slice(first, last), copyText: content.slice(start, end), startLine, endLine };
 }
 
+const changedRow = (row: ProjectDiffRow) => row.kind === "addition" || row.kind === "deletion";
+
+/** 提示词按连续变更块发送：端点是变更行时向外扩展到块边界，上下文行不扩展；不按侧过滤，保留原行对象引用。 */
+export function diffChangeBlockRows(rows: readonly ProjectDiffRow[], startIndex: number, endIndex: number): readonly ProjectDiffRow[] {
+  if (!Number.isInteger(startIndex) || !Number.isInteger(endIndex) || Math.min(startIndex, endIndex) < 0 || Math.max(startIndex, endIndex) >= rows.length) throw new Error("无有效差异选区");
+  let first = Math.min(startIndex, endIndex);
+  let last = Math.max(startIndex, endIndex);
+  while (first > 0 && changedRow(rows[first]) && changedRow(rows[first - 1])) first--;
+  while (last < rows.length - 1 && changedRow(rows[last]) && changedRow(rows[last + 1])) last++;
+  return rows.slice(first, last + 1);
+}
+
 /** 索引始终是原始 diff 模型索引，重复文本不会混淆行身份。 */
 export function diffContextRows(rows: readonly ProjectDiffRow[], startIndex: number, endIndex: number, side: "old" | "new" | "unified"): readonly ProjectDiffRow[] {
   if (!Number.isInteger(startIndex) || !Number.isInteger(endIndex) || Math.min(startIndex, endIndex) < 0 || Math.max(startIndex, endIndex) >= rows.length) throw new Error("无有效差异选区");

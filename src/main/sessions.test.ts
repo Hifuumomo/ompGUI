@@ -4,6 +4,7 @@ import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { homedir, tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { test } from "vitest";
+import { COMMENT_PROMPT_PREAMBLE } from "../shared/prompt-context";
 import {
   listNativeSessions,
   readSessionHeader,
@@ -119,6 +120,25 @@ async function catalogueKeepsHealthy(): Promise<void> {
       for (const failure of skipped) assert.ok(failure.error instanceof Error);
       await assert.rejects(readSessionHeader(empty));
       await assert.rejects(readSessionHeader(broken));
+      // 无标题会话以评论消息开头时，列表标签不显示评论开头说明。
+      const commented = join(bucket, "commented.jsonl");
+      await writeFile(
+        commented,
+        [
+          JSON.stringify({
+            type: "session",
+            id: "commented",
+            cwd: bucket,
+            timestamp: "2026-01-03T00:00:00.000Z",
+          }),
+          JSON.stringify({
+            type: "message",
+            message: { role: "user", content: `${COMMENT_PROMPT_PREAMBLE}\n\n帮我看下这处：` },
+          }),
+          "",
+        ].join("\n"),
+      );
+      assert.equal((await readSessionHeader(commented)).title, "帮我看下这处：");
     }
     await withEnvironment({}, exercise);
   } finally {

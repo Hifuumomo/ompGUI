@@ -1,6 +1,6 @@
 import type { AgentMessage, SessionEntry } from "../../shared/protocol";
 import { sessionHistoryMessages } from "../../shared/session-history";
-import { messageText } from "./session";
+import { displayMessageText, messageText } from "./session";
 import { transcriptUnits } from "./transcript-model";
 
 export interface RewindTarget {
@@ -82,7 +82,7 @@ export function rewindTargets(
       turnId: entry.id,
       entryId: entry.id,
       entryIds: [entry.id],
-      text: messageText(message),
+      text: displayMessageText(message),
       userTurn: isUserTurn(message),
     });
   }

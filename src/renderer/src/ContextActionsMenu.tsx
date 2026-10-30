@@ -10,10 +10,12 @@ import "./context-actions-menu.css";
 export interface ContextActionsMenuProps {
   x: number; y: number; copyText: string; context?: PromptContext;
   onClose: () => void; trigger?: HTMLElement; allowAppend?: boolean; sourceAnchor?: CommentSourceAnchor;
+  /** diff 的 context.rows 可能扩展到整个变更块；标题的行数仍按用户实际选中的行显示。 */
+  selectedLineCount?: number;
 }
 
 /** 正文菜单只保存用户选择时的快照；所有引用由宿主草稿 provider 处理。 */
-export function ContextActionsMenu({ x, y, copyText, context, onClose, trigger, allowAppend, sourceAnchor }: ContextActionsMenuProps) {
+export function ContextActionsMenu({ x, y, copyText, context, onClose, trigger, allowAppend, sourceAnchor, selectedLineCount }: ContextActionsMenuProps) {
   const actions = useContext(PromptContexts);
   const menu = useRef<HTMLDivElement>(null);
   const [position, setPosition] = useState({ left: x, top: y });
@@ -39,7 +41,7 @@ export function ContextActionsMenu({ x, y, copyText, context, onClose, trigger, 
     catch (failure) { setError(failure instanceof Error ? failure.message : String(failure)); }
   }
   const title = context?.kind === "diff"
-    ? trigger?.closest(".project-diff-summary") ? "整个文件差异" : `已选 ${context.rows.length} 行`
+    ? trigger?.closest(".project-diff-summary") ? "整个文件差异" : `已选 ${selectedLineCount ?? context.rows.length} 行`
     : context?.kind === "file" && context.representation === "reference" ? "文件引用（不包含文件内容）" : "所选内容";
   return createPortal(<div ref={menu} className="session-menu file-context-menu context-actions-menu" role="menu" aria-label="正文操作" style={position}
     onContextMenu={(event) => { event.preventDefault(); event.stopPropagation(); }}

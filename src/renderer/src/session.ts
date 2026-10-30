@@ -15,6 +15,7 @@ import {
 } from "../../shared/todo";
 import { parsePlanStatus } from "./plan-status";
 import { streamedMessage } from "../../shared/streamed-message";
+import { stripCommentPreamble } from "./prompt-context";
 
 export interface TimelineMessage {
   key: string;
@@ -73,6 +74,12 @@ export const initialSession: SessionView = {
   revision: 0,
   busy: false,
 };
+
+/** 界面显示和检索用的消息文本：用户消息去掉评论开头说明。只影响显示，会话数据和发给模型的文本不变。 */
+export function displayMessageText(message: AgentMessage): string {
+  const text = messageText(message);
+  return message.role === "user" ? stripCommentPreamble(text) : text;
+}
 
 /** 提取原生角色的可读预览。[in] message：完整原生消息。返回值：正文、执行载荷、摘要、文件内容或未识别载荷的 JSON。 */
 export function messageText(message: AgentMessage): string {

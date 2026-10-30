@@ -44,7 +44,7 @@ import { WebLinks } from "./WebLinks";
 import { PromptContexts, type PromptContextActions } from "./PromptContexts";
 import { ContextCommentPopover } from "./ContextCommentPopover";
 import { formatPromptContext } from "./prompt-context";
-import { validatePromptContext, type PromptContext } from "../../shared/prompt-context";
+import { stripCommentPreamble, validatePromptContext, type PromptContext } from "../../shared/prompt-context";
 import type { CommentSourceAnchor } from "../../shared/comment-anchor";
 import { useCommentDraft } from "./useCommentDraft";
 import { activeDraftComments, prepareCommentSubmission, type DraftComment } from "./comment-draft";
@@ -109,6 +109,7 @@ import {
 } from "../../shared/session-history";
 import { NativeImage, Transcript } from "./Transcript";
 import {
+  displayMessageText,
   initialSession,
   messageText,
   readable,
@@ -1120,10 +1121,10 @@ export default function App() {
     enabled: canCompose && !btwOpen && !pending && !loadingHistory && !modal && !contextComment,
   });
   /** 只在本会话仍可编辑时追加快照；不经过发送、连接或附件修改路径。 */
-  const appendPromptContext = (context: PromptContext, comment?: string) => {
+  const appendPromptContext = (context: PromptContext) => {
     if (fileLinkScope !== fileLinkScopeRef.current || contextEpoch !== generation.current) throw new Error("会话已变化，请重新选择引用");
     if (!canCompose || pending || loadingHistory) throw new Error("当前无法编辑提示词，请稍后重试");
-    const formatted = formatPromptContext(context, comment);
+    const formatted = formatPromptContext(context);
     focusAppendedContext.current = true;
     closeBtw(false);
     setDraft((current) => current ? current + (current.endsWith("\n\n") ? "" : current.endsWith("\n") ? "\n" : "\n\n") + formatted : formatted);
@@ -3676,10 +3677,10 @@ export default function App() {
                     view.state!.queuedMessages![queue].map((message, index) => (
                       <div className="queue-chip" key={`${queue}:${index}`}>
                         <span>
-                          {queue === "steering" ? "引导" : "后续"}：{message}
+                          {queue === "steering" ? "引导" : "后续"}：{stripCommentPreamble(message)}
                         </span>
                         <button
-                          aria-label={`移除队列消息 ${message}`}
+                          aria-label={`移除队列消息 ${stripCommentPreamble(message)}`}
                           onClick={() =>
                             void window.desktop
                               .request({
@@ -4517,7 +4518,7 @@ export default function App() {
                     entry.type === "message" &&
                     entry.message &&
                     activePath.has(entry.id) &&
-                    `${entry.id} ${messageText(entry.message)}`
+                    `${entry.id} ${displayMessageText(entry.message)}`
                       .toLowerCase()
                       .includes(treeSearch.toLowerCase()),
                 )
@@ -4532,7 +4533,7 @@ export default function App() {
                       {entry.message?.role} · <code>{entry.id}</code>
                     </span>
                     <p>
-                      {messageText(entry.message!).slice(0, 240) ||
+                      {displayMessageText(entry.message!).slice(0, 240) ||
                         readable(entry.message).slice(0, 240)}
                     </p>
                   </button>

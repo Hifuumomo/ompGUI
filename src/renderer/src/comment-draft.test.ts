@@ -1,6 +1,7 @@
 import { expect, it } from "vitest";
 import type { PromptContext } from "../../shared/prompt-context";
 import { activeDraftComments, addDraftComment, deleteDraftComment, newCommentDraft, prepareCommentSubmission, updateDraftComment } from "./comment-draft";
+import { COMMENT_PROMPT_PREAMBLE } from "./prompt-context";
 
 const source: PromptContext = { kind: "web", url: "https://example.test", title: "原始页面", text: "原文中的 [评论2] 不是引用" };
 it("按原文顺序单次展开，重复编号相同且引用内容不递归解释", () => {
@@ -19,7 +20,7 @@ it("未知编号原样保留，奇数反斜杠仅移除一层且不激活标记"
   expect(prepareCommentSubmission(escaped).text).toBe(String.raw`[评论1] \\[评论1] [评论99]`);
   const even = { ...draft, text: String.raw`\\[评论1]` };
   expect(activeDraftComments(even).map((entry) => entry.number)).toEqual([1]);
-  expect(prepareCommentSubmission(even).text.startsWith(String.raw`\\评论1`)).toBe(true);
+  expect(prepareCommentSubmission(even).text).toContain(String.raw`\\<comment id="1">`);
 });
 it("删除最后一个token休眠，撤销恢复；显式删除只移除该编号未转义项", () => {
   const draft = addDraftComment(newCommentDraft("问题"), 1, source, "解释");
@@ -38,7 +39,29 @@ it("编辑仅改变评论，保留编号和原始快照，外部修改不污染�
   expect(edited.comments[0]).toMatchObject({ number: 9, comment, context: source });
   const payload = prepareCommentSubmission(edited).text;
   expect(payload).not.toContain("页面后来变了");
-  expect(payload.endsWith(`评论：${comment}`)).toBe(true);
+  expect(payload.endsWith(`\n\n${comment}\n</comment>`)).toBe(true);
+});
+it("多条评论穿插、重复 token 时顺序和边界正确", () => {
+  let draft = addDraftComment(newCommentDraft(), 1, source, "解释甲");
+  draft = addDraftComment(draft, 2, { ...source, text: "第二段" }, "解释乙");
+  const result = prepareCommentSubmission({ ...draft, text: "先看 [评论2]，再看 [评论1]，回头看 [评论2]" }).text;
+  expect(result.match(/<comment id="2">/g)).toHaveLength(2);
+  expect(result.match(/<comment id="1">/g)).toHaveLength(1);
+  expect(result.match(/<\/comment>/g)).toHaveLength(3);
+  expect(result.indexOf('<comment id="2">')).toBeLessThan(result.indexOf('<comment id="1">'));
+});
+it("开头说明只在有生效评论时添加一次，原文已有说明时不重复", () => {
+  const draft = addDraftComment(newCommentDraft(), 1, source, "解释");
+  const prepared = prepareCommentSubmission({ ...draft, text: "问题 [评论1] 与 [评论1]" }).text;
+  expect(prepared.startsWith(`${COMMENT_PROMPT_PREAMBLE}\n\n问题 `)).toBe(true);
+  expect(prepared.split(COMMENT_PROMPT_PREAMBLE)).toHaveLength(2);
+  // 撤回排队消息或回退后，已展开的文本会回到输入框。
+  expect(prepareCommentSubmission(draft, prepared).text).toBe(prepared);
+  const restored = prepareCommentSubmission(draft, `${COMMENT_PROMPT_PREAMBLE}\n\n问题 [评论1]`).text;
+  expect(restored.split(COMMENT_PROMPT_PREAMBLE)).toHaveLength(2);
+  for (const text of [String.raw`\[评论1] [评论99]`, "/jobs [评论90]", "普通文字"]) {
+    expect(prepareCommentSubmission(draft, text).text).not.toContain(COMMENT_PROMPT_PREAMBLE);
+  }
 });
 it("拒绝slash与已登记引用混发，但不阻止未知编号的普通命令", () => {
   const draft = addDraftComment(newCommentDraft(), 1, source, "解释");
@@ -55,9 +78,10 @@ it("按首次有效token顺序追加图片，重复token复用编号且不发送
   draft = addDraftComment(draft, 3, one, "休眠");
   const prepared = prepareCommentSubmission(draft, "[评论2] [评论1] [评论2] \\[评论3] [评论99]", 1);
   expect(prepared.images).toEqual([{ type: "image", data: png.data, mimeType: "image/png" }, { type: "image", data: png.data, mimeType: "image/png" }]);
-  expect(prepared.text.match(/附图：本条消息第2张图片/g)).toHaveLength(2);
-  expect(prepared.text.match(/附图：本条消息第3张图片/g)).toHaveLength(1);
-  expect(prepared.text).not.toContain("第4张图片");
+  expect(prepared.text.match(/"image":2[,}]/g)).toHaveLength(2);
+  expect(prepared.text.match(/"image":3[,}]/g)).toHaveLength(1);
+  expect(prepared.text).not.toContain('"image":4');
+  expect(prepared.text).not.toContain("hasImage");
   expect(prepared.text).not.toContain(png.data);
   expect(prepared).toMatchObject({ draftId: draft.id, revision: draft.revision });
   const deleted = deleteDraftComment(draft, draft.comments[1].id);

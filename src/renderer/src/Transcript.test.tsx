@@ -16,6 +16,9 @@ import {
   timeline,
 } from "./transcript-test-harness";
 import { Transcript } from "./Transcript";
+import { outlineEntries } from "./ConversationOutline";
+import { COMMENT_PROMPT_PREAMBLE } from "./prompt-context";
+import { transcriptUnits } from "./transcript-model";
 
 /** 空思考不占位；流式正文到达后显示，正常思考仍保留。 */
 it("隐藏空白思考块，流式思考有正文后再显示", async () => {
@@ -441,4 +444,31 @@ it("连续迟到段分别截止计时，不把下一次等待算入前一个后�
   ]);
   expect([...container.querySelectorAll(".process-summary-label")].map((node) => node.textContent)).toEqual(["运行了 4秒", "运行了 5秒", "运行了 3秒"]);
   expect([...container.querySelectorAll(".followup-tag")].map((node) => node.textContent)).toEqual(["后续回复 ↩ npm test", "后续回复 ↩ Reviewer"]);
+});
+
+/** 评论开头说明只在显示层隐藏，会话数据保持原样。 */
+const fence = "`".repeat(3);
+const commentMessage = `${COMMENT_PROMPT_PREAMBLE}\n\n帮我看下这处：\n\n<comment id="1">\n\n${fence}text\n{"type":"file","path":"a.ts"}\n\n代码行\n${fence}\n\n这里为什么改？\n</comment>`;
+
+it("用户消息不显示评论开头说明，代码块和评论正文完整，原数据不变", async () => {
+  const messages: AgentMessage[] = [
+    { role: "user", content: commentMessage },
+    { role: "user", content: [{ type: "text", text: commentMessage }] },
+  ];
+  await conversation(messages);
+  expect(container.textContent).not.toContain("下面的");
+  expect(container.textContent).not.toContain("元数据中的");
+  expect(container.textContent).toContain("帮我看下这处：");
+  expect(container.textContent).toContain("这里为什么改？");
+  const blocks = [...container.querySelectorAll("pre code")];
+  expect(blocks).toHaveLength(2);
+  for (const block of blocks) expect(block.textContent).toContain('{"type":"file","path":"a.ts"}');
+  expect(messages[0].content).toBe(commentMessage);
+});
+
+it("大纲标题不显示评论开头说明", () => {
+  const entries = outlineEntries(transcriptUnits(timeline([{ role: "user", content: commentMessage }]), []));
+  expect(entries).toHaveLength(1);
+  expect(entries[0].title.startsWith("帮我看下这处：")).toBe(true);
+  expect(entries[0].title).not.toContain("下面的");
 });

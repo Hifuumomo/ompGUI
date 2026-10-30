@@ -1,7 +1,7 @@
 import type { PromptContext } from "../../shared/prompt-context";
 import { COMMENT_DRAFT_IMAGE_LIMIT, promptContextImageBytes, validatePromptContext } from "../../shared/prompt-context";
 import type { CommentSourceAnchor } from "../../shared/comment-anchor";
-import { formatPromptContext } from "./prompt-context";
+import { COMMENT_PROMPT_PREAMBLE, formatContextComment } from "./prompt-context";
 
 /** 来源快照不可变；UI 锚点从不进入模型提示词。 */
 export interface DraftComment {
@@ -17,9 +17,11 @@ export interface CommentDraft {
   revision: number;
   text: string;
   comments: readonly DraftComment[];
+  /** 同一草稿内只增不减，撤销恢复的旧 token 不会绑定到新评论；新草稿从 1 开始。 */
+  nextNumber: number;
 }
 export function newCommentDraft(text = ""): CommentDraft {
-  return { id: crypto.randomUUID(), revision: 0, text, comments: [] };
+  return { id: crypto.randomUUID(), revision: 0, text, comments: [], nextNumber: 1 };
 }
 export function commentToken(number: number): string { return `[评论${number}]`; }
 export function validateComment(comment: string): string {
@@ -38,7 +40,7 @@ export function transformCommentTokens(text: string, comments: readonly DraftCom
     active.add(entry.id);
     if (mode === "remove" && entry.id === removeId) return slashes;
     if (mode !== "expand") return whole;
-    return `${slashes}评论${entry.number}\n${formatPromptContext(entry.context, entry.comment, imageNumbers?.get(entry.id))}`;
+    return `${slashes}${formatContextComment(entry.number, entry.context, entry.comment, imageNumbers?.get(entry.id))}`;
   });
   return { text: output, active };
 }
@@ -56,7 +58,7 @@ export function addDraftComment(draft: CommentDraft, number: number, context: Pr
   if (imageBytes > COMMENT_DRAFT_IMAGE_LIMIT) throw new Error("评论图片累计超过 64MiB，请删除部分评论后重试");
   const entry: DraftComment = { id: crypto.randomUUID(), number, revision: 0, context: structuredClone(context), comment: validateComment(comment), sourceAnchor };
   const separator = !draft.text || draft.text.endsWith("\n\n") ? "" : draft.text.endsWith("\n") ? "\n" : "\n\n";
-  return { ...draft, revision: draft.revision + 1, text: draft.text + separator + commentToken(number), comments: [...draft.comments, entry] };
+  return { ...draft, revision: draft.revision + 1, text: draft.text + separator + commentToken(number), comments: [...draft.comments, entry], nextNumber: Math.max(draft.nextNumber, number + 1) };
 }
 export function updateDraftComment(draft: CommentDraft, id: string, comment: string): CommentDraft {
   const value = validateComment(comment);
@@ -81,5 +83,7 @@ export function prepareCommentSubmission(draft: CommentDraft, text = draft.text,
     }
   }
   const expanded = transformCommentTokens(text, draft.comments, "expand", undefined, imageNumbers);
-  return { draftId: draft.id, revision: draft.revision, text: expanded.text, images };
+  // 撤回排队消息或回退后，展开文本可能回到输入框；已带说明的原文不再重复添加。
+  const preamble = active.size && !text.startsWith(COMMENT_PROMPT_PREAMBLE) ? `${COMMENT_PROMPT_PREAMBLE}\n\n` : "";
+  return { draftId: draft.id, revision: draft.revision, text: preamble + expanded.text, images };
 }

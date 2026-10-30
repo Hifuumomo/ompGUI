@@ -2,7 +2,7 @@ import { useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from "
 import type { ProjectDiff, ProjectDiffRow } from "../../shared/project-browser";
 import { validatePromptContext, type PromptContext } from "../../shared/prompt-context";
 import { ContextActionsMenu } from "./ContextActionsMenu";
-import { diffContextRows } from "./project-context-selection";
+import { diffChangeBlockRows, diffContextRows } from "./project-context-selection";
 import type { CodeRow } from "./file-code-model";
 import type { LocalCommentAnchor } from "../../shared/comment-anchor";
 import { LocalSourceMarkers, diffCommentIdentity } from "./LocalCommentMarkers";
@@ -149,7 +149,10 @@ function UnifiedDiff({ rows, indices }: {
 
 type DiffSide = "old" | "new" | "unified";
 interface DiffSelection {
+  /** 实际选中的行：用于复制、sourceAnchor 和“已选 N 行”。 */
   rows: readonly ProjectDiffRow[];
+  /** 扩展到连续变更块的行：只用于提示词的 context.rows。 */
+  promptRows: readonly ProjectDiffRow[];
   side: DiffSide;
   range?: Range;
 }
@@ -195,8 +198,11 @@ function selectedDiff(root: HTMLElement, rows: readonly ProjectDiffRow[]): DiffS
   }
   if (!last) throw new Error("无有效差异选区");
   const side = firstSide.dataset.diffSide as DiffSide;
+  const firstIndex = Number(first.dataset.diffIndex);
+  const lastIndex = Number(last.dataset.diffIndex);
   return {
-    rows: diffContextRows(rows, Number(first.dataset.diffIndex), Number(last.dataset.diffIndex), side),
+    rows: diffContextRows(rows, firstIndex, lastIndex, side),
+    promptRows: diffChangeBlockRows(rows, firstIndex, lastIndex),
     side,
     range,
   };
@@ -210,7 +216,7 @@ export function ProjectDiffView(props: Props) {
   const root = useRef<HTMLDivElement>(null);
   const identity = useMemo(() => diffCommentIdentity(props.diff.rows), [props.diff.rows]);
   const [menu, setMenu] = useState<{
-    x: number; y: number; copyText: string;
+    x: number; y: number; copyText: string; selectedLineCount: number;
     context: Extract<PromptContext, { kind: "diff" }>;
     trigger: HTMLElement; whole: boolean;
     sourceAnchor: LocalCommentAnchor;
@@ -239,17 +245,22 @@ export function ProjectDiffView(props: Props) {
         throw new Error("请在同一侧选择差异行，不能跨侧选择");
       }
       const chosen: DiffSelection = selected ?? (row && side
-        ? { rows: diffContextRows(props.diff.rows, Number(row.dataset.diffIndex), Number(row.dataset.diffIndex), side), side }
-        : { rows: props.diff.rows, side: "unified" });
+        ? {
+          rows: diffContextRows(props.diff.rows, Number(row.dataset.diffIndex), Number(row.dataset.diffIndex), side),
+          promptRows: diffChangeBlockRows(props.diff.rows, Number(row.dataset.diffIndex), Number(row.dataset.diffIndex)),
+          side,
+        }
+        : { rows: props.diff.rows, promptRows: props.diff.rows, side: "unified" });
       const context: Extract<PromptContext, { kind: "diff" }> = {
         kind: "diff", path: props.path, previousPath: props.previousPath,
-        base: props.base, side: chosen.side, rows: chosen.rows,
+        base: props.base, side: chosen.side, rows: chosen.promptRows,
       };
       validatePromptContext(context);
       const rect = point ? undefined : chosen.range?.getBoundingClientRect() ?? (row ?? target).getBoundingClientRect();
       setMenu({
         x: point?.x ?? rect!.left, y: point?.y ?? rect!.bottom,
         copyText: chosen.rows.map((original) => original.text + original.ending).join(""),
+        selectedLineCount: chosen.rows.length,
         context,
         sourceAnchor: {
           kind: "local", view: "diff", path: props.path, previousPath: props.previousPath, base: props.base, identity,
@@ -326,7 +337,7 @@ export function ProjectDiffView(props: Props) {
       )}
       <LocalSourceMarkers root={root} path={props.path} previousPath={props.previousPath} view="diff" identity={identity} base={props.base} />
       {menu && <ContextActionsMenu
-        x={menu.x} y={menu.y} copyText={menu.copyText} context={menu.context}
+        x={menu.x} y={menu.y} copyText={menu.copyText} context={menu.context} selectedLineCount={menu.selectedLineCount}
         trigger={menu.trigger} sourceAnchor={menu.sourceAnchor} allowAppend onClose={() => setMenu(undefined)}
       />}
     </div>
