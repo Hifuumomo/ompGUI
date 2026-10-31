@@ -71,7 +71,8 @@
 }
 .review-icon-tooltip {
   position: absolute;
-  z-index: 2;
+  /* 须高于变更页吸顶的文件标题行（z-index: 2），否则 tooltip 会被盖住。 */
+  z-index: 20;
   top: 100%;
   right: 0;
   padding: 6px 8px;
