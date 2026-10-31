@@ -94,28 +94,28 @@ it("标准操作使用图标，并在悬停和聚焦时显示状态说明与已�
     await act(() => button.blur());
     expect(container.querySelector('[role="tooltip"]')).toBeNull();
   }
-  const refresh = buttons[0];
+  // 标题行只保留全屏与关闭；刷新、收起文件栏、自动换行在各页自己的工具行。
+  const fullscreen = buttons[0];
   await act(() =>
-    refresh.dispatchEvent(new MouseEvent("mouseover", { bubbles: true })),
+    fullscreen.dispatchEvent(new MouseEvent("mouseover", { bubbles: true })),
   );
   expect(container.querySelector('[role="tooltip"]')?.textContent).toBe(
-    "刷新目录与当前文件",
+    "全屏显示文件与变更",
   );
-  await act(() => refresh.focus());
+  await act(() => fullscreen.focus());
   await act(() =>
-    refresh.dispatchEvent(new MouseEvent("mouseout", { bubbles: true })),
+    fullscreen.dispatchEvent(new MouseEvent("mouseout", { bubbles: true })),
   );
   expect(container.querySelector('[role="tooltip"]')).not.toBeNull();
-  await act(() => buttons[1].focus());
   await click("全屏显示文件与变更");
   expect(container.querySelector('[role="tooltip"]')?.textContent).toBe(
     "退出全屏",
   );
-  await act(() => buttons[2].focus());
+  await act(() => buttons[1].focus());
   expect(container.querySelector('[role="tooltip"]')?.textContent).toBe(
     "关闭文件与变更（Esc）",
   );
-  await act(() => buttons[3].focus());
+  await act(() => buttons[2].focus());
   await click("显示项目文件");
   expect(container.querySelector('[role="tooltip"]')?.textContent).toBe(
     "展开项目文件栏",
@@ -123,11 +123,15 @@ it("标准操作使用图标，并在悬停和聚焦时显示状态说明与已�
   expect(
     container.querySelector<HTMLElement>(".code-review-files")?.hidden,
   ).toBe(true);
-  await act(() => buttons[4].focus());
+  await act(() => buttons[3].focus());
   await click("自动换行");
-  expect(buttons[4].getAttribute("aria-pressed")).toBe("true");
+  expect(buttons[3].getAttribute("aria-pressed")).toBe("true");
   expect(container.querySelector('[role="tooltip"]')?.textContent).toBe(
     "关闭自动换行",
+  );
+  await act(() => buttons[4].focus());
+  expect(container.querySelector('[role="tooltip"]')?.textContent).toBe(
+    "刷新目录与当前文件",
   );
 });
 
@@ -210,11 +214,17 @@ it("项目状态读取失败仍能预览消息指定的绝对路径文件", asyn
       }}
     />,
   );
-  expect(container.querySelector('[role="alert"]')?.textContent).toBe(
-    "原项目目录已移动",
-  );
+  // 变更读取失败只影响「变更」页，文件页照常预览。
+  expect(container.querySelector('[role="alert"]')).toBeNull();
   expect(container.querySelector(".file-code-view")?.textContent).toContain(
     "/other/output.cpp",
+  );
+  const changesTab = [
+    ...container.querySelectorAll<HTMLButtonElement>('[role="tab"]'),
+  ].find((tab) => tab.textContent?.startsWith("变更"))!;
+  await act(() => changesTab.click());
+  expect(container.querySelector('[role="alert"]')?.textContent).toBe(
+    "原项目目录已移动",
   );
 });
 

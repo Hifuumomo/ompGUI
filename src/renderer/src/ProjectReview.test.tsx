@@ -62,93 +62,84 @@ async function click(label: string) {
       .click(),
   );
 }
-async function selectMode(mode: string) {
-  const button =
-    container.querySelector<HTMLButtonElement>("[data-diff-mode]")!;
-  if (button.getAttribute("aria-disabled") === "true") {
-    await act(() => button.click());
-    return;
-  }
-  for (let step = 0; step < 3 && button.dataset.diffMode !== mode; step++) {
-    await act(() => button.click());
-  }
-  expect(button.dataset.diffMode).toBe(mode);
+/** 点击标题行的标签页（文件 / 变更）。 */
+async function openTab(name: string) {
+  const button = [
+    ...container.querySelectorAll<HTMLButtonElement>('[role="tab"]'),
+  ].find((item) => item.textContent?.startsWith(name))!;
+  expect(button).toBeDefined();
+  await act(() => button.click());
+}
+function section(path: string) {
+  return container.querySelector<HTMLElement>(`[data-change-path="${path}"]`)!;
+}
+/** 文件页工具行：它是 DOM 里的第一个工具行。 */
+function filesToolbar() {
+  return container.querySelector(".code-review-toolbar")!.textContent;
 }
 
-async function scope(label: string) {
-  await act(() =>
-    [
-      ...container.querySelectorAll<HTMLButtonElement>(
-        ".project-tree-modes button",
-      ),
-    ]
-      .find((button) => button.getAttribute("aria-label") === label)!
-      .click(),
-  );
-}
-
-it("显示模式图标按并排、单栏、全部源码循环，聚焦提示随状态更新", async () => {
+it("差异布局图标在并排与单栏两态间切换，聚焦提示随状态更新", async () => {
   await render(<CodeReviewPanel {...fixture()} />);
-  await click("查看文件 main.py");
+  await openTab("变更");
   const button =
-    container.querySelector<HTMLButtonElement>("[data-diff-mode]")!;
+    container.querySelector<HTMLButtonElement>("[data-diff-layout]")!;
   await act(() => button.focus());
-  for (const [mode, label, next] of [
+  for (const [layout, label, next] of [
     ["split", "并排 Diff", "单栏 Diff"],
-    ["unified", "单栏 Diff", "全部源码"],
-    ["source", "全部源码", "并排 Diff"],
+    ["unified", "单栏 Diff", "并排 Diff"],
   ]) {
-    expect(button.dataset.diffMode).toBe(mode);
-    expect(button.getAttribute("aria-label")).toBe(`差异显示方式：${label}`);
+    expect(button.dataset.diffLayout).toBe(layout);
+    expect(button.getAttribute("aria-label")).toBe(
+      `差异布局：${layout === "split" ? "并排" : "单栏"}`,
+    );
     expect(container.querySelector('[role="tooltip"]')?.textContent).toBe(
       `${label}；点击切换为${next}`,
     );
     await act(() => button.click());
   }
-  expect(button.dataset.diffMode).toBe("split");
+  expect(button.dataset.diffLayout).toBe("split");
   expect(container.querySelector("select")).toBeNull();
 });
 
-it("全部文件默认源码，切回变更清除范围外选择，不能对未变更文件启动 Diff", async () => {
+it("两页各自保留状态：文件页选中未变更文件，切到变更页再切回仍保留，且不对它启动 Diff", async () => {
   const props = fixture();
   vi.mocked(props.browser.listProjectDirectory).mockResolvedValue([
     { name: "clean.ts", path: "/project/clean.ts", kind: "file" },
   ]);
   await render(<CodeReviewPanel {...props} />);
-  await click("查看文件 main.py");
-  await scope("全部文件");
-  expect(
-    container.querySelector<HTMLElement>("[data-diff-mode]")?.dataset.diffMode,
-  ).toBe("source");
   await click("查看文件 clean.ts");
-  expect(
-    container.querySelector("[data-diff-mode]")?.getAttribute("aria-disabled"),
-  ).toBe("true");
-  await selectMode("split");
-  expect(props.browser.readProjectDiff).toHaveBeenCalledTimes(1);
-  await scope("已更改");
-  expect(
-    container.querySelector(".code-review-toolbar")?.textContent,
-  ).not.toContain("clean.ts");
-  expect(container.querySelector(".file-code-view")).toBeNull();
+  expect(filesToolbar()).toContain("clean.ts");
+  expect(props.browser.readProjectDiff).not.toHaveBeenCalled();
+  await openTab("变更");
+  expect(props.browser.readProjectDiff).toHaveBeenCalledTimes(3);
+  for (const [request] of vi.mocked(props.browser.readProjectDiff).mock.calls)
+    expect(request.file.path).not.toBe("/project/clean.ts");
+  await openTab("文件");
+  expect(filesToolbar()).toContain("clean.ts");
+  expect(container.querySelector(".file-code-view")?.textContent).toContain(
+    "added",
+  );
 });
 
-it("已删除文件源码模式显示说明而不读取不存在的文件", async () => {
+it("已删除文件只在变更页出现：区块显示差异且没有“在文件中打开”；文件页显示指向变更的说明", async () => {
   const props = fixture();
   await render(<CodeReviewPanel {...props} />);
-  await click("查看文件 app.js");
-  await selectMode("source");
-  expect(container.textContent).toContain("此文件已删除，没有当前源码");
+  await openTab("变更");
+  expect(section("/project/app.js").querySelector(".project-diff-view")).not.toBeNull();
+  expect(container.querySelector('[aria-label="在文件中打开 app.js"]')).toBeNull();
+  expect(container.querySelector('[aria-label="在文件中打开 main.py"]')).not.toBeNull();
   expect(props.browser.readProjectFile).not.toHaveBeenCalled();
-  await selectMode("unified");
-  expect(container.querySelector('[aria-label="单栏差异"]')).not.toBeNull();
-  await scope("全部文件");
-  expect(
-    container.querySelector(".code-review-toolbar")?.textContent,
-  ).not.toContain("app.js");
+  await render(
+    <CodeReviewPanel
+      {...props}
+      requestedFile={{ name: "app.js", path: "/project/app.js", kind: "file" }}
+    />,
+  );
+  expect(container.textContent).toContain("此文件已删除，没有当前源码");
+  expect(container.textContent).toContain("请在「变更」中查看删除内容");
 });
 
-it("外部目录和项目范围分离，外部文件不可使用项目 Diff", async () => {
+it("指定目录视图与项目文件分离：点 × 回到项目文件，外部文件不属于变更", async () => {
   const props = fixture();
   vi.mocked(props.browser.listProjectDirectory).mockImplementation(
     async (path) => [
@@ -161,32 +152,24 @@ it("外部目录和项目范围分离，外部文件不可使用项目 Diff", as
       requestedFile={{ name: "outside", path: "/outside", kind: "directory" }}
     />,
   );
+  expect(container.textContent).toContain("指定目录 · /outside");
   await click("查看文件 item.ts");
   expect(props.browser.readProjectFile).toHaveBeenLastCalledWith(
     "/outside/item.ts",
   );
-  await selectMode("split");
-  expect(props.browser.readProjectDiff).not.toHaveBeenCalled();
-  await scope("全部文件");
+  await click("返回项目文件");
   expect(props.browser.listProjectDirectory).toHaveBeenLastCalledWith(
     "/project",
   );
-  expect(
-    container.querySelector(".code-review-toolbar")?.textContent,
-  ).not.toContain("item.ts");
-  await scope("已更改");
-  await click("查看文件 main.py");
-  expect(props.browser.readProjectDiff).toHaveBeenCalledTimes(1);
-  await scope("指定目录");
-  expect(
-    container.querySelector('[aria-label="展开或折叠目录 outside"]'),
-  ).not.toBeNull();
-  expect(
-    container.querySelector(".code-review-toolbar")?.textContent,
-  ).not.toContain("main.py");
+  expect(filesToolbar()).not.toContain("item.ts");
+  expect(container.textContent).not.toContain("指定目录 ·");
+  await openTab("变更");
+  expect(section("/project/src/nested/main.py")).not.toBeNull();
+  for (const [request] of vi.mocked(props.browser.readProjectDiff).mock.calls)
+    expect(request.file.path).not.toBe("/outside/item.ts");
 });
 
-it("消息中的项目文件自动切换全部文件并展开父目录", async () => {
+it("消息中的项目文件落在文件页并展开父目录，不挂载也不读取变更页", async () => {
   const props = fixture();
   vi.mocked(props.browser.listProjectDirectory).mockImplementation(
     async (path) =>
@@ -210,16 +193,19 @@ it("消息中的项目文件自动切换全部文件并展开父目录", async (
       ?.getAttribute("aria-current"),
   ).toBe("true");
   expect(
-    container.querySelector<HTMLElement>("[data-diff-mode]")?.dataset.diffMode,
-  ).toBe("source");
+    container
+      .querySelector('[role="tab"][aria-selected="true"]')
+      ?.textContent,
+  ).toContain("文件");
+  expect(container.querySelector(".code-review-changes")).toBeNull();
   expect(props.browser.readProjectDiff).not.toHaveBeenCalled();
 });
 
-it("消息指定文件切到当前源码，覆盖已打开的 Git 差异选择", async () => {
+it("消息指定文件切到文件页的当前源码，覆盖已打开的变更页", async () => {
   const props = fixture();
   await render(<CodeReviewPanel {...props} />);
-  await click("查看文件 main.py");
-  expect(props.browser.readProjectDiff).toHaveBeenCalledTimes(1);
+  await openTab("变更");
+  expect(props.browser.readProjectDiff).toHaveBeenCalledTimes(3);
   await render(
     <CodeReviewPanel
       {...props}
@@ -231,12 +217,15 @@ it("消息指定文件切到当前源码，覆盖已打开的 Git 差异选择",
     />,
   );
   expect(
-    container.querySelector<HTMLElement>("[data-diff-mode]")?.dataset.diffMode,
-  ).toBe("source");
+    container
+      .querySelector('[role="tab"][aria-selected="true"]')
+      ?.textContent,
+  ).toContain("文件");
   expect(props.browser.readProjectFile).toHaveBeenLastCalledWith(
     "/other/outside.cpp",
   );
-  expect(props.browser.readProjectDiff).toHaveBeenCalledTimes(1);
+  // 变更页被隐藏后不再为刷新发起新的差异读取。
+  expect(props.browser.readProjectDiff).toHaveBeenCalledTimes(3);
   expect(container.querySelector(".file-code-view")?.textContent).toContain(
     "added",
   );
@@ -244,6 +233,7 @@ it("消息指定文件切到当前源码，覆盖已打开的 Git 差异选择",
 
 it("变更树保留多级父目录和兄弟文件，折叠再展开恢复子树，提供类型与状态图标", async () => {
   await render(<CodeReviewPanel {...fixture()} />);
+  await openTab("变更");
   expect(container.querySelector('[aria-label="Python 文件"]')).not.toBeNull();
   expect(container.querySelector('[aria-label="React 文件"]')).not.toBeNull();
   expect(container.querySelector('[aria-label="修改"]')).not.toBeNull();
@@ -274,45 +264,46 @@ it("变更树保留多级父目录和兄弟文件，折叠再展开恢复子树�
 it("并排对齐增删与空位，切换单栏后同时显示旧新内容和双行号，不重新读取", async () => {
   const props = fixture();
   await render(<CodeReviewPanel {...props} />);
-  await click("查看文件 main.py");
-  const before = container.querySelector('[aria-label="修改前"]')!;
-  const after = container.querySelector('[aria-label="修改后"]')!;
+  await openTab("变更");
+  const main = section("/project/src/nested/main.py");
+  const before = main.querySelector('[aria-label="修改前"]')!;
+  const after = main.querySelector('[aria-label="修改后"]')!;
   expect(before.querySelectorAll(".deletion")).toHaveLength(1);
   expect(after.querySelectorAll(".addition")).toHaveLength(2);
   expect(before.querySelectorAll(".gap")).toHaveLength(1);
-  expect(container.querySelector(".project-diff-added")?.textContent).toBe(
-    "+2",
+  expect(main.querySelector(".project-diff-added")?.textContent).toBe("+2");
+  expect(main.querySelector(".change-stat-added")?.textContent).toBe("+2");
+  await act(() =>
+    container.querySelector<HTMLButtonElement>("[data-diff-layout]")!.click(),
   );
-  await selectMode("unified");
-  const unified = container.querySelector('[aria-label="单栏差异"]')!;
+  const unified = main.querySelector('[aria-label="单栏差异"]')!;
   expect(unified.textContent).toContain("old");
   expect(unified.textContent).toContain("new");
   expect(unified.querySelector('[data-old-line="3"]')).not.toBeNull();
   expect(unified.querySelector('[data-new-line="4"]')).not.toBeNull();
-  expect(props.browser.readProjectDiff).toHaveBeenCalledTimes(1);
-  await selectMode("source");
-  expect(container.querySelector(".file-code-view")?.textContent).not.toContain(
-    "old",
-  );
-  expect(props.browser.readProjectDiff).toHaveBeenCalledTimes(1);
+  expect(props.browser.readProjectDiff).toHaveBeenCalledTimes(3);
 });
 
-it("Git 失败明确显示错误，不假装没有修改", async () => {
+it("Git 失败明确显示错误，不假装没有修改；文件页不受影响", async () => {
   const props = fixture();
   vi.mocked(props.browser.listProjectChanges).mockRejectedValueOnce(
     new Error("Git 不可用"),
   );
   await render(<CodeReviewPanel {...props} />);
+  expect(container.querySelector('[role="alert"]')).toBeNull();
+  await openTab("变更");
   expect(container.querySelector('[role="alert"]')?.textContent).toBe(
     "Git 不可用",
   );
-  expect(container.textContent).not.toContain("工作区没有未提交变更");
+  expect(container.textContent).not.toContain("没有变更");
 });
 
-it("源码模式直接读取文件，不等待或启动 Diff 计算", async () => {
+it("文件页直接读取文件，不挂载变更页也不启动 Diff 计算", async () => {
   const props = fixture();
+  vi.mocked(props.browser.listProjectDirectory).mockResolvedValue([
+    changes.files[0],
+  ]);
   await render(<CodeReviewPanel {...props} />);
-  await selectMode("source");
   await click("查看文件 main.py");
   expect(props.browser.readProjectFile).toHaveBeenCalledWith(
     changes.files[0].path,
@@ -323,7 +314,7 @@ it("源码模式直接读取文件，不等待或启动 Diff 计算", async () =
   );
 });
 
-it("刷新保留折叠状态，并清除提交后过期的重命名基线", async () => {
+it("刷新保留目录折叠状态，并清除提交后过期的重命名基线", async () => {
   const props = fixture();
   const renamed = {
     ...changes.files[0],
@@ -335,39 +326,41 @@ it("刷新保留折叠状态，并清除提交后过期的重命名基线", asyn
     files: [renamed, ...changes.files.slice(1)],
   });
   await render(<CodeReviewPanel {...props} />);
-  await click("查看文件 main.py");
+  await openTab("变更");
+  expect(section(renamed.path)).not.toBeNull();
   await click("展开或折叠目录 nested");
   vi.mocked(props.browser.listProjectChanges).mockResolvedValue({
     ...changes,
     base: "b".repeat(40),
     files: changes.files.slice(1),
   });
-  await click("刷新项目代码");
+  await click("刷新变更与差异");
   expect(container.querySelector(".project-diff")).toBeNull();
-  expect(
-    container.querySelector(".code-review-toolbar")?.textContent,
-  ).not.toContain("main.py");
+  expect(section("/project/src/nested/main.py")).toBeNull();
   vi.mocked(props.browser.listProjectChanges).mockResolvedValue(changes);
-  await click("刷新项目代码");
+  await click("刷新变更与差异");
   expect(container.querySelector('[aria-label="查看文件 main.py"]')).toBeNull();
   expect(
     container.querySelector('[aria-label="查看文件 view.tsx"]'),
   ).not.toBeNull();
 });
 
-it("刷新失败保留原目录并明确报错", async () => {
+it("刷新失败保留原目录与区块并明确报错", async () => {
   const props = fixture();
   await render(<CodeReviewPanel {...props} />);
+  await openTab("变更");
   await click("展开或折叠目录 nested");
   vi.mocked(props.browser.listProjectChanges).mockRejectedValue(
     new Error("Git 读取失败"),
   );
-  await click("刷新项目代码");
+  await click("刷新变更与差异");
   expect(container.querySelector('[role="alert"]')?.textContent).toContain(
     "Git 读取失败",
   );
+  expect(container.textContent).toContain("刷新失败");
   expect(container.querySelector('[aria-label="查看文件 main.py"]')).toBeNull();
   expect(
     container.querySelector('[aria-label="查看文件 view.tsx"]'),
   ).not.toBeNull();
+  expect(section("/project/src/view.tsx")).not.toBeNull();
 });

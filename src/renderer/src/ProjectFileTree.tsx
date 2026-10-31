@@ -11,6 +11,7 @@ import {
   type ProjectTreeNode,
 } from "./project-tree-model";
 import { useProjectResource } from "./useProjectResource";
+import { TreeChevron } from "./TreeChevron";
 
 export interface ProjectTreeContext {
   readonly browser: ProjectBrowser;
@@ -105,9 +106,7 @@ function TreeButton({ props, expanded }: TreeButtonProps) {
       }}
     >
       {directory ? (
-        <span className="project-tree-chevron" aria-hidden="true">
-          {expanded ? "⌄" : "›"}
-        </span>
+        <TreeChevron open={expanded} />
       ) : (
         <ProjectFileIcon path={entry.path} />
       )}

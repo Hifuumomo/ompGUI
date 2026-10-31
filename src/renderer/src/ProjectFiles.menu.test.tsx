@@ -37,8 +37,6 @@ function fixture() {
       browser,
       changes: { kind: "git" as const, root: "/project", base: "base", files: [entry] },
       revision: 0,
-      scope: "changed" as const,
-      onScopeChange: vi.fn(),
       onSelect: vi.fn(),
     },
   };

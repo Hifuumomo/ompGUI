@@ -58,6 +58,26 @@ function sortNodes(
     });
 }
 
+/** 列出路径的全部祖先目录（由近到远），定位时据此展开树。 */
+export function treeAncestors(path: string): readonly string[] {
+  const ancestors: string[] = [];
+  let current = treePath(path);
+  while (current.includes("/")) {
+    current = current.slice(0, current.lastIndexOf("/"));
+    ancestors.push(current);
+  }
+  return ancestors;
+}
+
+/** 按目录树从上到下的顺序取出文件叶子；变更页的文件区块顺序与目录栏保持一致。 */
+export function flattenTreeFiles(
+  nodes: readonly ProjectTreeNode[],
+): readonly ProjectEntry[] {
+  return nodes.flatMap((node) =>
+    node.children ? flattenTreeFiles(node.children) : [node.entry],
+  );
+}
+
 export function directoryChanged(path: string, files: readonly ProjectEntry[]) {
   return files.some((file) =>
     treePath(file.path).startsWith(`${treePath(path)}/`),

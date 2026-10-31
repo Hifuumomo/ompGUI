@@ -157,7 +157,8 @@
   color: #858993;
   padding: 12px;
 }
-.code-review-source .file-code-view {
+.code-review-source .file-code-view,
+.change-section .file-code-view {
   margin: 0;
   padding: 12px 0;
   background: #fff;
@@ -170,9 +171,153 @@
   tab-size: 4;
   white-space: normal;
 }
-.code-review-source .file-code-view[data-wrap="false"] {
+.code-review-source .file-code-view[data-wrap="false"],
+.change-section .file-code-view[data-wrap="false"] {
   display: grid;
   grid-template-columns: minmax(100%, max-content);
+}
+/* 标题行的「文件 / 变更」分段控件 */
+.review-tabs {
+  display: inline-flex;
+  gap: 2px;
+  padding: 3px;
+  margin-right: auto;
+  border: 1px solid #e1e5ea;
+  border-radius: 9px;
+  background: #f0f2f5;
+}
+/* 标题行里 `> div { flex: 1 }` 会把标签条撑满，这里恢复为按内容宽度。 */
+.code-review-header > .review-tabs {
+  flex: 0 0 auto;
+}
+.code-review-panel .review-tabs button {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 12px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: #646b75;
+  font-size: 13px;
+}
+.review-tabs button:hover {
+  background: #e4e9f0;
+}
+.review-tabs button[aria-selected="true"] {
+  background: #fff;
+  color: #3675ce;
+  font-weight: 600;
+  box-shadow: 0 1px 3px #0002;
+}
+.review-tabs button[aria-disabled="true"] {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.review-tabs button:focus-visible {
+  outline: 2px solid #3975c6;
+  outline-offset: 2px;
+}
+.review-tab-count {
+  flex-shrink: 0;
+  min-width: 17px;
+  padding: 0 4px;
+  border-radius: 8px;
+  background: #e7eef8;
+  color: #3675ce;
+  font-size: 10px;
+  font-weight: normal;
+  line-height: 17px;
+  font-variant-numeric: tabular-nums;
+}
+/* 两个页面用 hidden 切换；display 样式不能覆盖 hidden。 */
+.review-page {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+.review-page[hidden] {
+  display: none;
+}
+.code-review-changes {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+.code-review-changes-scroll {
+  flex: 1;
+  min-width: 0;
+  overflow: auto;
+  outline-offset: -2px;
+}
+.change-source-pill {
+  display: inline-block;
+  padding: 4px 12px;
+  border: 1px solid #d8dce2;
+  border-radius: 16px;
+  color: #30343b;
+  font-style: normal;
+  font-size: 13px;
+}
+.change-section {
+  border-bottom: 1px solid var(--review-border);
+}
+.change-section-header {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px 2px 4px;
+  background: #f6f8fa;
+  border-bottom: 1px solid var(--review-border);
+}
+.code-review-panel .change-section-toggle {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 4px;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  font-size: 13px;
+}
+.change-section-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 600;
+}
+.change-stats {
+  display: inline-flex;
+  gap: 6px;
+  flex-shrink: 0;
+  color: #858993;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+.change-stat-added {
+  color: #109842;
+}
+.change-stat-deleted {
+  color: #cb444c;
+}
+.change-section-note {
+  margin: 0;
+  padding: 16px 12px;
+  color: #858993;
+  font-size: 13px;
+}
+/* 未加载的占位：不使用 role="status"，只撑出高度。 */
+.change-section-placeholder {
+  min-height: 72px;
 }
 .workspace:has(.code-review-panel) .composer-toolbar,
 .workspace:has(.code-review-panel) .composer-toolbar > div,

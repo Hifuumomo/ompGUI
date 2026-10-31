@@ -1,7 +1,9 @@
-.code-review-source .project-diff-view {
+.code-review-source .project-diff-view,
+.change-section .project-diff-view {
   padding: 0;
 }
-.code-review-source .project-diff-view[data-wrap="false"] {
+.code-review-source .project-diff-view[data-wrap="false"],
+.change-section .project-diff-view[data-wrap="false"] {
   display: block;
 }
 .project-diff-summary {

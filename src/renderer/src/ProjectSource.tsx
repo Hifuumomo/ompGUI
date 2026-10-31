@@ -33,7 +33,7 @@ interface Props {
 }
 
 /** 文件读取经 IPC 只保留错误消息；将缺失错误转为侧栏提示，其他错误保持可见。 */
-function SourceError({ message }: { readonly message: string }) {
+export function SourceError({ message }: { readonly message: string }) {
   return (
     <p role="alert">
       {/(?:^|\s)(?:ENOENT|ENOTDIR):/.test(message) ? "找不到该文件" : message}
@@ -228,7 +228,7 @@ export function ProjectSource(props: Props) {
   if (props.file.change === "deleted" && props.mode === "source")
     return (
       <p className="code-review-empty">
-        此文件已删除，没有当前源码；请选择 Diff 查看删除内容。
+        此文件已删除，没有当前源码；请在「变更」中查看删除内容。
       </p>
     );
   return props.changes.kind === "git" && props.mode !== "source" ? (

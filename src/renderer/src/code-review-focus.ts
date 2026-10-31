@@ -28,11 +28,13 @@ export function reviewKeys(
     return;
   }
   if (event.key !== "Tab" || !options.fullscreen) return;
+  // 标签页的 roving tabindex 会让未选中标签为 -1，隐藏的页面与目录栏也不能获得焦点，
+  // 它们都不能作为循环的首尾目标。
   const targets = [
     ...event.currentTarget.querySelectorAll<HTMLElement>(
-      'button:not(:disabled), input:not(:disabled), select:not(:disabled), [tabindex="0"]',
+      'button:not(:disabled):not([tabindex="-1"]), input:not(:disabled), select:not(:disabled), [tabindex="0"]',
     ),
-  ];
+  ].filter((element) => !element.closest("[hidden]"));
   const first = targets[0];
   const last = targets.at(-1);
   const outside = !targets.includes(document.activeElement as HTMLElement);

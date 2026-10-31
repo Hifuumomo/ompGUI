@@ -178,8 +178,13 @@ it("clears an active changed-file filter and expands a folded ancestor for a del
   const { browser, request, props } = fixture();
   const deleted: ProjectEntry = { ...file, change: "deleted" };
   browser.listProjectChanges = vi.fn<ProjectReview["listProjectChanges"]>(async () => ({ kind: "git", root: "/project", base: "base", files: [deleted] }));
+  // 用例会打开变更页，区块会读取差异；桩需要返回结果。
+  browser.readProjectDiff = vi.fn(async () => ({ before: "", after: "", rows: [] }));
   await render(<CodeReviewPanel {...props} />);
-  const directory = container.querySelector<HTMLButtonElement>('[data-project-path="/project/src"]')!;
+  // 筛选框与已删除文件的路径定位都在变更页；文件页的树里也有 src，需限定在变更页内。
+  const changesTab = [...container.querySelectorAll<HTMLButtonElement>('[role="tab"]')].find((tab) => tab.textContent?.startsWith("变更"))!;
+  await act(() => changesTab.click());
+  const directory = container.querySelector<HTMLButtonElement>('.code-review-changes [data-project-path="/project/src"]')!;
   await act(() => directory.click());
   const filter = container.querySelector<HTMLInputElement>('[aria-label="筛选变更文件"]')!;
   await act(() => {
@@ -191,7 +196,7 @@ it("clears an active changed-file filter and expands a folded ancestor for a del
   await flushFrames();
   expect(filter.value).toBe("");
   expect(props.onCommentReveal).toHaveBeenCalledWith(expect.objectContaining({
-    status: "located", trigger: container.querySelector('[data-project-path="/project/src/a.ts"]'),
+    status: "located", trigger: container.querySelector('.code-review-changes [data-project-path="/project/src/a.ts"]'),
   }));
   expect(browser.readProjectFile).not.toHaveBeenCalled();
 });

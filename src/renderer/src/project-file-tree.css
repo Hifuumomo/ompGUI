@@ -1,45 +1,3 @@
-.project-tree-modes {
-  display: inline-flex;
-  align-self: flex-start;
-  gap: 2px;
-  padding: 3px;
-  border: 1px solid #e1e5ea;
-  border-radius: 9px;
-  background: #f0f2f5;
-}
-.project-files .project-tree-modes .review-icon-button {
-  width: auto;
-  min-width: 36px;
-  padding-inline: 8px;
-  gap: 5px;
-  border: 0;
-  border-radius: 6px;
-  background: transparent;
-  color: #646b75;
-}
-.project-tree-modes .review-icon-button:hover {
-  background: #e4e9f0;
-}
-.project-tree-modes .review-icon-button[aria-pressed="true"] {
-  background: #fff;
-  color: #3675ce;
-  box-shadow: 0 1px 3px #0002;
-}
-.project-tree-count {
-  flex-shrink: 0;
-  min-width: 17px;
-  padding: 0 4px;
-  border-radius: 8px;
-  background: #e7eef8;
-  color: #3675ce;
-  font-size: 10px;
-  line-height: 17px;
-  font-variant-numeric: tabular-nums;
-}
-.project-tree-modes .review-icon-tooltip {
-  left: 0;
-  right: auto;
-}
 .project-files ul {
   list-style: none;
   padding: 0;
@@ -77,12 +35,44 @@
 .project-files .project-tree-row[aria-current="true"] {
   background: #e7eff8;
 }
-.project-tree-chevron {
-  color: #848c98;
-  width: 18px;
+/* 箭头与文件图标同为 18px 宽的一列，同层级的文件名因此左对齐。 */
+.tree-chevron {
   flex: 0 0 18px;
-  text-align: center;
-  font-size: 18px;
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: #848c98;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transition: transform 120ms ease;
+}
+.tree-chevron[data-open="true"] {
+  transform: rotate(90deg);
+}
+.project-tree-directory-notice {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 4px;
+  padding: 4px 6px;
+  border-radius: 5px;
+  background: #eef3f6;
+  color: #48525f;
+}
+.project-tree-directory-notice > span {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.project-files .project-tree-directory-notice button {
+  border: 0;
+  background: transparent;
+  padding: 0 6px;
+  font-size: 16px;
+  line-height: 1;
 }
 .project-folder-dot {
   width: 6px;
@@ -109,5 +99,8 @@
 @media (prefers-reduced-motion: reduce) {
   .project-files .project-tree-reveal {
     animation: none;
+  }
+  .tree-chevron {
+    transition: none;
   }
 }

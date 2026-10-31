@@ -18,6 +18,10 @@ const paths = {
   files:
     "M8 7V5a2 2 0 0 1 2-2h4l3 2h3a2 2 0 0 1 2 2v10M4 7h5l3 3h5a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2Z",
   directory: "M3 5h6l3 3h9v13H3ZM9 14h6m-3-3 3 3-3 3",
+  external:
+    "M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5",
+  collapseAll: "M4 3h16M4 21h16m-12-14 4 4 4-4m-8 10 4-4 4 4",
+  expandAll: "M4 12h16M8 7l4-4 4 4M8 17l4 4 4-4",
   preview:
     "M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Zm10 3a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z",
 };
