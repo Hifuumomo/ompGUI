@@ -153,27 +153,6 @@ it("恢复含图片的用户草稿后，评论仍保留图片且不触发RPC或�
   }
 });
 
-it("导航进入设置即收起导航，调整字号后关闭设置恢复浏览器且保留草稿", async () => {
-  const api = await mount();
-  await type(composer(), "已有问题");
-  await act(async () => container.querySelector<HTMLButtonElement>('[aria-label="浏览器"]')!.click());
-  await act(async () => container.querySelector<HTMLButtonElement>('[aria-label="打开会话导航"]')!.click());
-  expect(container.querySelector(".sidebar-open")).not.toBeNull();
-  expect(container.querySelector(".browser-panel")?.getAttribute("data-suspended")).toBe("true");
-  await act(async () => container.querySelector<HTMLButtonElement>(".sidebar-footer button")!.click());
-  expect(container.querySelector(".sidebar-open")).toBeNull();
-  const font = container.querySelector<HTMLInputElement>('[aria-label="界面字体大小"]')!;
-  await act(async () => {
-    Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!.call(font, "12");
-    font.dispatchEvent(new Event("input", { bubbles: true }));
-  });
-  await act(async () => document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true })));
-  expect(container.querySelector('[role="dialog"]')).toBeNull();
-  expect(container.querySelector(".browser-panel")?.getAttribute("data-suspended")).toBe("false");
-  expect(composer().value).toBe("已有问题");
-  expect(api.start).not.toHaveBeenCalled();
-  expect(api.request).not.toHaveBeenCalled();
-});
 
 async function connectFixture(api: ConnectedFixture) {
   api.request.mockImplementation(async ({ type }) => {

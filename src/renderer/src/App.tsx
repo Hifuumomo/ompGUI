@@ -1,6 +1,7 @@
 import { useProjectDrag } from "./useProjectDrag";
 import { useSelectionBoundary } from "./useSelectionBoundary";
 import { SidebarResizeHandle, useSidebarWidth } from "./SidebarResizeHandle";
+import { useSessionSidebarVisibility } from "./useSessionSidebarVisibility";
 import {
   useConversationSpacing,
   DEFAULT_CONVERSATION_GUTTER,
@@ -586,7 +587,7 @@ export default function App() {
   useEffect(() => {
     if (!hasSessionSelection) return;
     const clear = (event: Event) => {
-      if (event.target instanceof Element && event.target.closest(".session-item, .session-menu, .confirm-backdrop")) return;
+      if (event.target instanceof Element && event.target.closest('.session-item, .session-menu, .confirm-backdrop, [aria-controls="session-sidebar"]')) return;
       setSelectedSessionPaths(new Set());
     };
     document.addEventListener("pointerdown", clear, true);
@@ -671,7 +672,13 @@ export default function App() {
     ExtensionRequest[]
   >([]);
   const [jumpVisible, setJumpVisible] = useState(false);
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const { isNarrow, mobileSidebarOpen, sidebarVisible, toggleSidebar, closeMobileSidebar } = useSessionSidebarVisibility();
+  const sidebar = useRef<HTMLElement>(null);
+  const sidebarToggle = useRef<HTMLButtonElement>(null);
+  const sidebarClose = useRef<HTMLButtonElement>(null);
+  const sidebarFocusedControl = useRef<HTMLElement | null>(null);
+  const sidebarScrollTop = useRef(0);
+  const previousSidebarLayout = useRef({ isNarrow, sidebarVisible });
   const [sessionMenu, setSessionMenu] = useState<SessionMenuTarget>();
   const closeSessionMenu = useCallback(() => setSessionMenu(undefined), []);
   const spacing = useConversationSpacing();
@@ -840,7 +847,7 @@ export default function App() {
     [launch.cwd],
   );
   useEffect(() => setFileMenu(undefined), [launch.cwd, fileLinkScope]);
-  const browserSuspended = Boolean(modal || extensionRequests.length || sessionMenu || fileMenu || sidebarOpen || btwMenuOpen || (btwUI.open && btwUI.surface === "history"));
+  const browserSuspended = Boolean(modal || extensionRequests.length || sessionMenu || fileMenu || (isNarrow && mobileSidebarOpen) || btwMenuOpen || (btwUI.open && btwUI.surface === "history"));
   /** 网页导航独立于引擎；新点击使先前的文件解析失效。 */
   const openWebLink = useCallback(async (url: string): Promise<"opened" | "deferred"> => {
     const overview = btwUIRef.current.open && btwUIRef.current.surface === "history" ? btwUIRef.current : undefined;
@@ -1101,6 +1108,43 @@ export default function App() {
     draggedProject,
     projectDrop,
   } = useProjectDrag(moveProject, suppressProjectClick);
+
+  /** 只调整目录布局，保留列表、会话与输入区的实例及状态。 */
+  function toggleSessionSidebar() {
+    if (sidebarVisible) {
+      sidebarScrollTop.current = projectList.current?.scrollTop ?? 0;
+      closeSessionMenu();
+    }
+    sidebarToggle.current?.focus();
+    toggleSidebar();
+  }
+
+  function closeSessionSidebarDrawer() {
+    sidebarScrollTop.current = projectList.current?.scrollTop ?? 0;
+    closeSessionMenu();
+    sidebarToggle.current?.focus();
+    closeMobileSidebar();
+  }
+
+  useLayoutEffect(() => {
+    const previous = previousSidebarLayout.current;
+    const crossedBreakpoint = previous.isNarrow !== isNarrow;
+    if (sidebarVisible && (!previous.sidebarVisible || crossedBreakpoint) && projectList.current)
+      projectList.current.scrollTop = sidebarScrollTop.current;
+    if (!sidebarVisible) closeSessionMenu();
+    if (isNarrow && sidebarVisible && !previous.sidebarVisible) {
+      sidebarClose.current?.focus();
+    } else if (
+      (!sidebarVisible && (!isNarrow || crossedBreakpoint) && sidebar.current?.contains(document.activeElement)) ||
+      (!isNarrow && document.activeElement === sidebarClose.current) ||
+      (crossedBreakpoint && sidebarFocusedControl.current &&
+        (!sidebarVisible || document.activeElement === document.body))
+    ) {
+      // 断点切换不能把焦点留在隐藏目录或仅窄屏可见的关闭按钮中。
+      sidebarToggle.current?.focus();
+    }
+    previousSidebarLayout.current = { isNarrow, sidebarVisible };
+  }, [isNarrow, sidebarVisible, closeSessionMenu, projectList]);
 
   /** 将真实失败记录到会话日志并显示于现有连接提示。[in] error：异常。返回值：无。 */
   const report = useCallback((error: unknown) => {
@@ -1806,7 +1850,7 @@ export default function App() {
       if (token === generation.current) readOnlyRef.current = previous;
       throw error;
     }
-    setSidebarOpen(false);
+    closeMobileSidebar();
   }
 
   async function changeSessionEngines(targets: readonly SessionSummary[], start: boolean) {
@@ -3161,6 +3205,7 @@ export default function App() {
     <OutputFileProbe.Provider value={probeOutputFile}>
     <div
       className="desktop-shell"
+      data-session-sidebar-hidden={!sidebarVisible}
       style={
         {
           "--conversation-gutter": `${spacing.gutter}px`,
@@ -3169,20 +3214,32 @@ export default function App() {
       }
     >
       <aside
-        className={`sidebar ${sidebarOpen ? "sidebar-open" : ""}`}
+        ref={sidebar}
+        id="session-sidebar"
+        className="sidebar"
         aria-label="会话导航"
+        onFocusCapture={(event) => { sidebarFocusedControl.current = event.target; }}
+        onBlurCapture={(event) => {
+          // CSS 断点可能先于媒体查询回调隐藏焦点节点；保留这次失焦供布局阶段恢复。
+          if (event.relatedTarget || event.target.getClientRects().length)
+            sidebarFocusedControl.current = null;
+        }}
       >
-        <SidebarResizeHandle
+        {!isNarrow && sidebarVisible && <SidebarResizeHandle
           width={sidebarSize.width}
           onWidth={sidebarSize.setWidth}
-        />
+        />}
         <div className="sidebar-actions">
           <button
+            ref={sidebarClose}
+            type="button"
             className="mobile-only icon-button"
-            aria-label="收起导航"
-            onClick={() => setSidebarOpen(false)}
+            title="关闭会话目录"
+            aria-label="关闭会话目录"
+            aria-controls="session-sidebar"
+            onClick={closeSessionSidebarDrawer}
           >
-            ×
+            <span aria-hidden="true">×</span>
           </button>
         </div>
         <button
@@ -3213,7 +3270,13 @@ export default function App() {
             刷新
           </button>
         </div>
-        <nav ref={projectList} className="session-list">
+        <nav
+          ref={projectList}
+          className="session-list"
+          onScroll={(event) => {
+            if (sidebarVisible) sidebarScrollTop.current = event.currentTarget.scrollTop;
+          }}
+        >
           {liveProjectOrder
             .filter((cwd) => sessionGroups.has(cwd))
             .map((cwd) => {
@@ -3357,7 +3420,7 @@ export default function App() {
           />
         )}
         <div className="sidebar-footer">
-          <button onClick={() => { setSidebarOpen(false); setModal("settings"); }} disabled={pending}>
+          <button onClick={() => { closeMobileSidebar(); setModal("settings"); }} disabled={pending}>
             设置
           </button>
         </div>
@@ -3366,11 +3429,19 @@ export default function App() {
         <header className="workspace-header">
           <div className="workspace-title">
             <button
-              className="mobile-only icon-button"
-              aria-label="打开会话导航"
-              onClick={() => setSidebarOpen(true)}
+              ref={sidebarToggle}
+              type="button"
+              className="session-sidebar-toggle icon-button"
+              title={sidebarVisible ? "隐藏会话目录" : "显示会话目录"}
+              aria-label={sidebarVisible ? "隐藏会话目录" : "显示会话目录"}
+              aria-expanded={sidebarVisible}
+              aria-controls="session-sidebar"
+              onClick={toggleSessionSidebar}
             >
-              ☰
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <rect x="2" y="3" width="20" height="18" rx="2" />
+                <path d={sidebarVisible ? "M9 3v18m8-12-3 3 3 3" : "M9 3v18m4-12 3 3-3 3"} />
+              </svg>
             </button>
             <div>
               <h1>{view.state?.sessionName || "你的编程工作台"}</h1>

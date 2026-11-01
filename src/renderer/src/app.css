@@ -254,8 +254,11 @@ small {
   flex-direction: column;
   padding: 18px 15px 14px;
 }
+.desktop-shell[data-session-sidebar-hidden="true"] > .sidebar {
+  display: none;
+}
 .sidebar-actions {
-  display: flex;
+  display: none;
   justify-content: flex-end;
 }
 .sidebar .sidebar-resize-handle {
@@ -487,7 +490,18 @@ small {
   display: flex;
   gap: 12px;
   align-items: center;
-  min-width: 0;
+  min-width: 34px;
+  flex: 1;
+  overflow: hidden;
+}
+.session-sidebar-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 34px;
+  width: 34px;
+  height: 34px;
+  padding: 4px;
 }
 .workspace-title > div {
   min-width: 0;
@@ -496,6 +510,9 @@ small {
   font-size: 16px;
   margin: 0 0 6px;
   font-weight: 650;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .workspace-title p {
   font-family: var(--font-mono);
@@ -1744,8 +1761,10 @@ legend {
   .mobile-only {
     display: inline-block;
   }
+  .sidebar-actions {
+    display: flex;
+  }
   .sidebar {
-    display: none;
     position: fixed;
     z-index: 30;
     height: 100dvh;
@@ -1753,9 +1772,6 @@ legend {
     top: 0;
     width: 260px;
     box-shadow: 10px 0 40px #18352f30;
-  }
-  .sidebar-open {
-    display: flex;
   }
   .workspace-header {
     min-height: 72px;

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type PointerEvent } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type PointerEvent } from "react";
 
 const MIN_WIDTH = 180;
 const MAX_WIDTH = 480;
@@ -48,8 +48,23 @@ export function SidebarResizeHandle({
   width: number;
   onWidth: (value: number) => void;
 }) {
-  const drag = useRef<{ x: number; width: number } | null>(null);
+  const handle = useRef<HTMLButtonElement>(null);
+  const drag = useRef<{
+    x: number;
+    width: number;
+    pointerId: number;
+  } | null>(null);
   const [dragging, setDragging] = useState(false);
+  useLayoutEffect(() => {
+    const element = handle.current;
+    return () => {
+      // 隐藏或跨断点会卸载手柄，在 DOM 移除前结束捕获。
+      const pointerId = drag.current?.pointerId;
+      drag.current = null;
+      if (pointerId !== undefined && element?.hasPointerCapture(pointerId))
+        element.releasePointerCapture(pointerId);
+    };
+  }, []);
   function stop(event: PointerEvent<HTMLButtonElement>) {
     drag.current = null;
     setDragging(false);
@@ -58,6 +73,7 @@ export function SidebarResizeHandle({
   }
   return (
     <button
+      ref={handle}
       type="button"
       className="sidebar-resize-handle"
       role="separator"
@@ -74,6 +90,7 @@ export function SidebarResizeHandle({
         event.currentTarget.setPointerCapture(event.pointerId);
         drag.current = {
           x: event.clientX,
+          pointerId: event.pointerId,
           width:
             event.currentTarget.parentElement!.getBoundingClientRect().width,
         };
