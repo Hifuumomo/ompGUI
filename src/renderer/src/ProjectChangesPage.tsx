@@ -51,6 +51,8 @@ interface Props {
   readonly filesVisible: boolean;
   readonly wrap: boolean;
   readonly layout: DiffLayout;
+  /** 为 true 时每个文件的连续未修改行折叠成灰条。 */
+  readonly foldUnchanged: boolean;
   readonly collapsed: ReadonlySet<string>;
   readonly commentReveal?: LocalCommentRevealRequest;
   /** 评论定位到变更页某个文件的 Diff 时的目标路径：强制展开并读取该区块。 */
@@ -58,6 +60,7 @@ interface Props {
   readonly onToggleFiles: () => void;
   readonly onToggleWrap: () => void;
   readonly onToggleLayout: () => void;
+  readonly onToggleFold: () => void;
   readonly onRefresh: () => void;
   readonly onToggleSection: (path: string) => void;
   readonly onExpandSection: (path: string) => void;
@@ -397,6 +400,7 @@ export function ProjectChangesPage(props: Props) {
               resource={resources.get(entry.path)}
               layout={props.layout}
               wrap={props.wrap}
+              foldUnchanged={props.foldUnchanged}
               revealTarget={isForced(entry.path)}
               onToggle={props.onToggleSection}
               onOpenInFiles={props.onOpenInFiles}
@@ -429,6 +433,13 @@ export function ProjectChangesPage(props: Props) {
           tooltip={props.wrap ? "关闭自动换行" : "开启自动换行"}
           aria-pressed={props.wrap}
           onClick={props.onToggleWrap}
+        />
+        <ReviewIconButton
+          icon="foldUnchanged"
+          aria-label="折叠未修改的行"
+          tooltip={props.foldUnchanged ? "显示全部未修改的行" : "折叠未修改的行"}
+          aria-pressed={props.foldUnchanged}
+          onClick={props.onToggleFold}
         />
         <ReviewIconButton
           icon={allCollapsed ? "expandAll" : "collapseAll"}

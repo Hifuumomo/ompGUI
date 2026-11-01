@@ -1,6 +1,7 @@
-import { useCallback, type KeyboardEvent, type MouseEvent } from "react";
+import { useCallback, useMemo, useState, type KeyboardEvent, type MouseEvent } from "react";
 import type { ProjectDiff, ProjectEntry } from "../../shared/project-browser";
 import { projectImageType } from "../../shared/project-browser";
+import { diffCommentIdentity } from "./LocalCommentMarkers";
 import { ProjectDiffView } from "./ProjectDiffView";
 import { ProjectFileIcon } from "./ProjectFileIcon";
 import { ReviewIconButton } from "./ReviewIconButton";
@@ -23,6 +24,8 @@ interface Props {
   readonly resource?: DiffResource;
   readonly layout: DiffLayout;
   readonly wrap: boolean;
+  /** 为 true 时连续的未修改行折叠成灰条。 */
+  readonly foldUnchanged: boolean;
   /** 评论定位的目标区块，供定位检查识别其中的错误。 */
   readonly revealTarget: boolean;
   readonly onToggle: (path: string) => void;
@@ -36,6 +39,8 @@ interface Props {
   /** 登记区块元素，供页面的可见性观察器与滚动定位使用。 */
   readonly register: (path: string, element: HTMLElement | null) => void;
 }
+
+const NO_STARTS: ReadonlySet<number> = new Set();
 
 const MORE_ICON = (
   <>
@@ -88,6 +93,46 @@ export function ChangeFileSection(props: Props) {
     ? `${entry.previousPath} → ${entry.path}`
     : entry.path;
 
+  // 手动展开的段放在这里：文件折叠时 ProjectDiffView 会卸载，状态放在里面会丢。
+  const [folds, setFolds] = useState<{
+    readonly identity?: string;
+    readonly starts: ReadonlySet<number>;
+  }>({ starts: NO_STARTS });
+  const rows = resource?.status === "ready" ? resource.value.rows : undefined;
+  const identity = useMemo(() => (rows ? diffCommentIdentity(rows) : undefined), [rows]);
+  // 只有读取完成且内容变化时才清空；刷新期间的 loading 不清空，内容相同的刷新保留展开状态。
+  if (identity !== undefined && identity !== folds.identity)
+    setFolds({ identity, starts: NO_STARTS });
+  // 工具栏开关从关闭变为开启时，所有手动展开的段重新收起。
+  const [previousFold, setPreviousFold] = useState(props.foldUnchanged);
+  if (previousFold !== props.foldUnchanged) {
+    setPreviousFold(props.foldUnchanged);
+    if (props.foldUnchanged) setFolds((old) => ({ identity: old.identity, starts: NO_STARTS }));
+  }
+  const onExpand = useCallback(
+    (start: number) =>
+      setFolds((old) =>
+        old.starts.has(start)
+          ? old
+          : { identity: old.identity, starts: new Set(old.starts).add(start) },
+      ),
+    [],
+  );
+  const onCollapse = useCallback(
+    (start: number) =>
+      setFolds((old) => {
+        if (!old.starts.has(start)) return old;
+        const starts = new Set(old.starts);
+        starts.delete(start);
+        return { identity: old.identity, starts };
+      }),
+    [],
+  );
+  const fold = useMemo(
+    () => (props.foldUnchanged ? { expanded: folds.starts, onExpand, onCollapse } : undefined),
+    [props.foldUnchanged, folds.starts, onExpand, onCollapse],
+  );
+
   function body() {
     if (image)
       return <p className="change-section-note">图片文件，不显示文本差异</p>;
@@ -105,6 +150,7 @@ export function ChangeFileSection(props: Props) {
         mode={props.layout}
         wrap={props.wrap}
         base={props.base}
+        fold={fold}
       />
     );
   }

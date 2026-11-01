@@ -53,6 +53,7 @@ function useReviewState(props: Props) {
   const [preview, setPreview] = useState(true);
   const [pathOnly, setPathOnly] = useState(false);
   const [layout, setLayout] = useState<DiffLayout>("split");
+  const [foldUnchanged, setFoldUnchanged] = useState(true);
   const [collapsed, setCollapsed] = useState<ReadonlySet<string>>(new Set());
   // 变更页首次打开时才挂载，之后用 hidden 切换以保留树状态与滚动位置。
   const [opened, setOpened] = useState(false);
@@ -154,6 +155,8 @@ function useReviewState(props: Props) {
     },
     layout,
     toggleLayout: () => setLayout((old) => (old === "split" ? "unified" : "split")),
+    foldUnchanged,
+    toggleFold: () => setFoldUnchanged((old) => !old),
     collapsed,
     toggleSection: (path: string) =>
       setCollapsed((old) => {
@@ -476,12 +479,14 @@ export function CodeReviewPanel(props: Props) {
             filesVisible={state.filesVisible}
             wrap={state.wrap}
             layout={state.layout}
+            foldUnchanged={state.foldUnchanged}
             collapsed={state.collapsed}
             commentReveal={props.commentReveal}
             revealPath={revealPath}
             onToggleFiles={() => state.setFilesVisible(!state.filesVisible)}
             onToggleWrap={() => state.setWrap(!state.wrap)}
             onToggleLayout={state.toggleLayout}
+            onToggleFold={state.toggleFold}
             onRefresh={() => state.setRevision((value) => value + 1)}
             onToggleSection={state.toggleSection}
             onExpandSection={state.expandSection}

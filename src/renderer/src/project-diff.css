@@ -40,6 +40,11 @@
 .project-diff-pane + .project-diff-pane {
   border-left: 1px solid #dfe4ea;
 }
+/* 不换行时列宽取窗格宽度和最长行中的较大值，灰条才能覆盖整个横向滚动范围，文字吸附才有效。
+   不能写成 minmax(100%, max-content)：最小值已占满窗格，没有剩余空间让轨道增长。 */
+.project-diff-view[data-wrap="false"] .project-diff-pane {
+  grid-template-columns: minmax(max-content, 100%);
+}
 .project-diff-pane > header {
   padding: 7px 10px;
   border-bottom: 1px solid #e6e9ed;
@@ -128,4 +133,49 @@
 }
 .code-review-toolbar > .project-type-icon {
   flex: 0 0 18px;
+}
+/* 灰条与收起条：选择器带 .code-review-panel，才能压过 .code-review-panel button 和全局 button 的样式。 */
+.code-review-panel .project-diff-fold {
+  display: block;
+  box-sizing: border-box;
+  flex-shrink: 0;
+  width: 100%;
+  min-height: 28px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: #f1f3f5;
+  color: #656d76;
+  font:
+    13px/28px "Microsoft YaHei",
+    "PingFang SC",
+    "Noto Sans CJK SC",
+    sans-serif;
+  text-align: left;
+  user-select: none;
+  cursor: pointer;
+  transition: none;
+}
+.code-review-panel .project-diff-fold:hover {
+  background: #e4e9f0;
+}
+.code-review-panel .project-diff-fold:focus-visible {
+  outline: 2px solid #3975c6;
+  outline-offset: -2px;
+}
+/* 文字吸附在可视区左侧，横向滚动后仍然可见。 */
+.project-diff-fold-text {
+  position: sticky;
+  left: 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 8px;
+  /* 固定行高并顶端对齐，避免收起条里的图标按基线对齐撑高行（曾比灰条高 3px）。 */
+  height: 28px;
+  vertical-align: top;
+}
+.project-diff-fold-icon {
+  flex: none;
 }
