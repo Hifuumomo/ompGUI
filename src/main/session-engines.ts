@@ -4,6 +4,7 @@ import type { AgentMessage, ConnectionInfo, LaunchOptions, RpcFrame, SessionEngi
 import { OmpRuntime } from "./rpc";
 import { ToolFilePreviewLedger } from "./tool-preview";
 import { streamedMessage } from "../shared/streamed-message";
+import { getPerformanceLogger } from "./performance-log";
 
 export interface SessionEngine {
   id: string;
@@ -33,6 +34,7 @@ export class SessionEngines {
     private readonly createRuntime: (emit: (frame: RpcFrame) => void) => OmpRuntime = (emit) => new OmpRuntime(emit),
   ) {}
   get active(): SessionEngine | undefined { return this.selected; }
+  get size(): number { return this.engines.size; }
   requireActive(): SessionEngine {
     if (!this.selected) throw new Error("当前没有连接的会话");
     return this.selected;
@@ -88,6 +90,12 @@ export class SessionEngines {
       pendingUI: new Map(), replay: new Map(), finalAnswer: false, unread: false,
     };
     this.engines.set(owner.id, owner);
+    const perf = getPerformanceLogger();
+    const started = perf ? performance.now() : 0;
+    if (perf) {
+      perf.event("session-engine.start", { engineId: owner.id });
+      perf.event("engine.owner", { engineId: owner.id, runtimeId: runtime.performanceId, role: "session" });
+    }
     if (activate) this.activate(owner); else this.publish();
     try {
       const connection = await owner.runtime.start(options, extension);
@@ -97,6 +105,7 @@ export class SessionEngines {
       await initialize?.(owner);
       if (owner.state === "starting") owner.state = "idle";
       this.publish();
+      if (perf) perf.event("session-engine.ready", { engineId: owner.id, durationMs: performance.now() - started });
       return owner;
     } catch (error) {
       await this.stop(owner);
@@ -105,6 +114,9 @@ export class SessionEngines {
   }
   async stop(owner?: SessionEngine): Promise<void> {
     if (!owner || !this.engines.has(owner.id)) return;
+    const perf = getPerformanceLogger();
+    const started = perf ? performance.now() : 0;
+    if (perf) perf.event("session-engine.stop.begin", { engineId: owner.id });
     owner.state = "stopping";
     owner.toolFiles.beginTransition();
     this.publish();
@@ -114,6 +126,7 @@ export class SessionEngines {
       owner.pendingUI.clear(); owner.replay.clear();
       if (this.selected === owner) this.selected = undefined;
       this.publish();
+      if (perf) perf.event("session-engine.stop.end", { engineId: owner.id, durationMs: performance.now() - started });
     }
   }
   async stopAll(): Promise<void> { await Promise.all([...this.engines.values()].map((owner) => this.stop(owner))); }

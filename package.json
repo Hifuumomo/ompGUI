@@ -11,7 +11,7 @@
   },
   "scripts": {
     "postinstall": "install-electron",
-    "dev": "electron-vite dev",
+    "dev": "node scripts/dev.cjs",
     "build": "electron-vite build",
     "typecheck": "tsc --noEmit",
     "test": "vitest run --environment jsdom",

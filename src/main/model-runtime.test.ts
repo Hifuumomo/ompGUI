@@ -11,6 +11,8 @@ const fake = vi.hoisted(() => ({
   ownsUIRequest: vi.fn(),
   respondUI: vi.fn(),
 }));
+const diagnostics = vi.hoisted(() => ({ get: vi.fn(), event: vi.fn(), count: vi.fn(), observe: vi.fn(), close: vi.fn() }));
+vi.mock("./performance-log", () => ({ getPerformanceLogger: diagnostics.get }));
 vi.mock("./rpc", () => ({
   OmpRuntime: class {
     start = fake.start;
@@ -47,10 +49,61 @@ it("代理管理走独立配置通道，不发送聊天 prompt", async () => {
 });
 beforeEach(() => {
   vi.resetAllMocks();
+  diagnostics.get.mockReturnValue(undefined);
   fake.request.mockResolvedValue({
     model: { provider: "test", id: "selected", name: "模型" },
     thinkingLevel: "high",
   });
+});
+
+it("诊断队列包含真正等待时间，失败不阻塞后续操作且不泄露参数", async () => {
+  diagnostics.get.mockReturnValue(diagnostics);
+  const clock = vi.spyOn(performance, "now");
+  let now = 0;
+  clock.mockImplementation(() => now);
+  try {
+    const gate = Promise.withResolvers<unknown>();
+    const failure = new Error("private-provider-error");
+    fake.request.mockImplementationOnce(() => gate.promise).mockResolvedValueOnce("second");
+    const models = new ModelRuntime(vi.fn());
+    const first = models.request({ type: "login", providerId: "private-provider" });
+    const rejected = expect(first).rejects.toBe(failure);
+    await Promise.resolve();
+    now = 5;
+    const second = models.request({ type: "get_state" });
+    expect(fake.request).toHaveBeenCalledTimes(1);
+    now = 25;
+    gate.reject(failure);
+    await rejected;
+    await expect(second).resolves.toBe("second");
+    expect(diagnostics.event).toHaveBeenCalledWith("queue.enqueue", { queue: "model", operation: "request", operationId: 2, depth: 2 });
+    expect(diagnostics.event).toHaveBeenCalledWith("queue.start", { queue: "model", operation: "request", operationId: 2, depth: 1, waitMs: 20 });
+    expect(diagnostics.event).toHaveBeenCalledWith("queue.end", { queue: "model", operation: "request", operationId: 1, depth: 1, runMs: 25, outcome: "error" });
+    expect(diagnostics.event).toHaveBeenCalledWith("queue.enqueue", { queue: "model", operation: "request", operationId: 1, depth: 1 });
+    expect(diagnostics.event).toHaveBeenCalledWith("queue.start", { queue: "model", operation: "request", operationId: 1, depth: 1, waitMs: 0 });
+    expect(diagnostics.event).toHaveBeenCalledWith("queue.end", { queue: "model", operation: "request", operationId: 2, depth: 0, runMs: 0, outcome: "success" });
+    expect(JSON.stringify(diagnostics.event.mock.calls)).not.toContain("private-provider");
+  } finally {
+    clock.mockRestore();
+  }
+});
+
+it("关闭诊断不读取时钟，保留失败恢复和原有命令执行次序", async () => {
+  const clock = vi.spyOn(performance, "now");
+  try {
+    const failure = new Error("failure");
+    fake.request.mockRejectedValueOnce(failure).mockResolvedValueOnce("recovered");
+    const models = new ModelRuntime(vi.fn());
+    const first = models.request({ type: "get_state" });
+    const second = models.request({ type: "get_available_models" });
+    await expect(first).rejects.toBe(failure);
+    await expect(second).resolves.toBe("recovered");
+    expect(fake.request.mock.calls).toEqual([[{ type: "get_state" }], [{ type: "get_available_models" }]]);
+    expect(clock).not.toHaveBeenCalled();
+    expect(diagnostics.event).not.toHaveBeenCalled();
+  } finally {
+    clock.mockRestore();
+  }
 });
 
 it("模型管理和登录走独立模型进程，UI响应不排在等待登录的队列后", async () => {

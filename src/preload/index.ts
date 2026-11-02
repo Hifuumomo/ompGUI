@@ -5,6 +5,7 @@ import type { ProjectDiffRequest } from "../shared/project-browser";
 import type { FileAction } from "../shared/file-actions";
 import type { BrowserPanelAction, BrowserPanelLayout, BrowserPanelState, BrowserSelectionMode } from "../shared/browser";
 import type { BrowserPromptContext } from "../shared/prompt-context";
+import { isRendererPerformanceSample, PERF_RENDERER_ARGUMENT, PERF_RENDERER_CHANNEL, type RendererPerformanceBridge } from "../shared/performance";
 import type {
   DesktopBridge,
   LaunchOptions,
@@ -309,3 +310,19 @@ const desktop: DesktopBridge = {
 };
 
 contextBridge.exposeInMainWorld("desktop", desktop);
+
+// 仅主进程显式开启的开发窗口获得独立诊断桥，不扩大正常 desktop API。
+if (process.argv.includes(PERF_RENDERER_ARGUMENT)) {
+  const performanceBridge: RendererPerformanceBridge = {
+    report(sample) {
+      if (!isRendererPerformanceSample(sample)) return;
+      ipcRenderer.send(PERF_RENDERER_CHANNEL, {
+        durationMs: sample.durationMs,
+        longTaskCount: sample.longTaskCount,
+        longTaskTotalMs: sample.longTaskTotalMs,
+        longTaskMaxMs: sample.longTaskMaxMs,
+      });
+    },
+  };
+  contextBridge.exposeInMainWorld("desktopPerformance", performanceBridge);
+}

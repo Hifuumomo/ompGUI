@@ -27,6 +27,7 @@ import { readSessionHeader } from "./sessions";
 import type { TreeNavigationOptions } from "../shared/native-tree";
 import type { PlanAction, PlanSnapshot } from "../shared/native-plan";
 import { cancelPlanOperation, readPlanControl, type PlanControl } from "./plan-control";
+import { getPerformanceLogger } from "./performance-log";
 
 const PHYSICAL_LIMIT = 1024 * 1024;
 const LOGICAL_LIMIT = 64 * 1024 * 1024;
@@ -38,6 +39,7 @@ type Pending = {
   timer: NodeJS.Timeout;
   command: string;
   output?: string[]; // prompt 响应前到达的本地 slash command_output 文本。
+  perf?: { started: number; request: string; kind: string }; // 仅诊断启用时分配，不记录协议内容。
 };
 type ChunkSequence = {
   id: string;
@@ -152,6 +154,55 @@ export class OmpRuntime {
   private planControlLifetime = new AbortController(); // 断线时终止独立 socket 请求。
   private shutdownPromise?: Promise<void>; // 串行化同一个进程的停止操作。
   private readonly emit: (frame: RpcFrame) => void; // 将原生事件送至受信窗口。
+  private perfId?: string; // 仅在诊断启用后生成，独立于原生会话身份。
+
+  /** 提供可选诊断身份；测试替身不需要实现新方法。 */
+  get performanceId(): string | undefined {
+    if (!getPerformanceLogger()) return undefined;
+    return this.perfId ??= randomUUID();
+  }
+
+  /** 固定技术分类防止任意原生命令字符串进入日志。 */
+  private perfRequestName(command: string): string {
+    switch (command) {
+      case "prompt": case "get_state": case "abort": case "abort_bash":
+      case "btw_cancel": case "negotiate_protocol": case "set_ask_dialog":
+      case "new_session": case "get_available_commands": case "get_available_models":
+      case "set_model": case "set_thinking_level": case "compact":
+      case "steer": case "follow_up": case "remove_queued_message": case "promote_queued_message":
+      case "abort_and_prompt": case "abort_and_restore_queue": case "open_session":
+      case "set_fast_mode": case "set_slow_mode": case "goal": case "get_entries": case "get_tree":
+      case "set_todos": case "set_subagent_subscription": case "set_event_filter":
+      case "get_subagents": case "get_subagent_messages": case "cancel_subagent": case "steer_subagent":
+      case "cycle_model": case "cycle_thinking_level": case "get_available_thinking_levels":
+      case "set_steering_mode": case "set_follow_up_mode": case "set_interrupt_mode":
+      case "set_auto_compaction": case "set_cache_warming": case "set_auto_retry": case "abort_retry":
+      case "bash": case "get_session_stats": case "export_html": case "switch_session": case "branch": case "fork":
+      case "get_branch_messages": case "get_last_assistant_text": case "set_session_name": case "handoff":
+      case "get_messages": case "get_messages_page": case "get_login_providers": case "login":
+      case "get_logout_accounts": case "logout": case "predict_word": case "predict_word_feedback":
+      case "btw": case "get_btw_history":
+      case "ompgui-plan": case "ompgui-tree": case "ompgui-model":
+      case "ompgui-roles": case "ompgui-resume": case "ompgui-agents":
+      case "ompgui-subagents": case "ompgui-seance": case "ompgui-session":
+      case "ompgui-predict":
+        return command;
+      default: return "other";
+    }
+  }
+
+  /** 完成相关响应计时；prompt 仅代表 admission，不代表生成结束。 */
+  private finishPerf(pending: Pending, outcome: "success" | "error" | "timeout" | "cancelled"): void {
+    const perf = getPerformanceLogger();
+    if (!perf || !pending.perf) return;
+    const durationMs = performance.now() - pending.perf.started;
+    const fields = { runtimeId: this.performanceId, request: pending.perf.request, kind: pending.perf.kind, outcome };
+    perf.count("rpc.end", 1, fields);
+    perf.observe("rpc.duration", durationMs, fields);
+    perf.observe("rpc.pending", this.pending.size + this.extensionPending.size, { runtimeId: this.performanceId });
+    if (durationMs >= 1000 || outcome !== "success")
+      perf.event("rpc.end", { ...fields, durationMs, pending: this.pending.size + this.extensionPending.size });
+  }
 
   /**
    * 创建原生进程运行器。
@@ -175,6 +226,9 @@ export class OmpRuntime {
     if (memoryOnly && options.sessionPath)
       throw new Error("模型准备进程不能打开历史会话");
     if (this.child) throw new Error("引擎已启动，请先停止当前连接");
+    const perf = getPerformanceLogger();
+    const started = perf ? performance.now() : 0;
+    if (perf) perf.event("engine.start", { runtimeId: this.performanceId, memoryOnly, resume: !!options.sessionPath });
     this.emit({ type: "desktop_status", status: "starting" });
     const executable = await resolveEngine(options.executable);
     let cwd = resolve(options.cwd);
@@ -239,8 +293,15 @@ export class OmpRuntime {
       stdio: "pipe",
     });
     this.child = child;
+    if (perf) {
+      perf.event("engine.spawn", { runtimeId: this.performanceId, childPid: child.pid, durationMs: performance.now() - started });
+      child.once("exit", (code, signal) => {
+        perf.event("engine.exit", { runtimeId: this.performanceId, code, signalled: signal !== null });
+      });
+    }
     const stderr = new StringDecoder("utf8");
     child.stdout.on("data", (data: Buffer) => {
+      if (perf) perf.count("transport.bytes.in", data.length, { runtimeId: this.performanceId });
       try {
         this.consume(data);
       } catch (error) {
@@ -273,6 +334,7 @@ export class OmpRuntime {
     );
     this.closePromise = new Promise<void>((resolveClose) => {
       child.once("close", (code, signal) => {
+        if (perf) perf.event("engine.close", { runtimeId: this.performanceId, code, signalled: signal !== null, closing: this.closing });
         if (bootstrapDir)
           void rm(bootstrapDir, { recursive: true, force: true }).catch(
             () => {},
@@ -308,6 +370,7 @@ export class OmpRuntime {
     });
     try {
       const frame = await ready;
+      if (perf) perf.event("engine.ready", { runtimeId: this.performanceId, durationMs: performance.now() - started });
       if (
         Array.isArray(frame.supportedProtocolVersions) &&
         frame.supportedProtocolVersions.includes(2)
@@ -344,6 +407,7 @@ export class OmpRuntime {
       }
       await this.plan({ op: "status" });
       this.emit({ type: "desktop_status", status: "connected" });
+      if (perf) perf.event("engine.handshake", { runtimeId: this.performanceId, durationMs: performance.now() - started, protocolVersion: this.protocolVersion });
       return { executable, cwd, protocolVersion: this.protocolVersion };
     } catch (error) {
       this.fail(error instanceof Error ? error : new Error(String(error)));
@@ -378,6 +442,8 @@ export class OmpRuntime {
       this.parts = [];
       this.lineBytes = 0;
       const text = new TextDecoder("utf-8", { fatal: true }).decode(bytes);
+      const perf = getPerformanceLogger();
+      if (perf) perf.count("transport.frames.in", 1, { runtimeId: this.performanceId });
       const frame = this.decode(JSON.parse(text));
       if (frame) this.dispatch(frame);
     }
@@ -558,6 +624,7 @@ export class OmpRuntime {
           if (pending) {
             clearTimeout(pending.timer);
             this.extensionPending.delete(envelope.requestId);
+            this.finishPerf(pending, envelope.ok === true ? "success" : "error");
             if (envelope.ok === true) pending.resolve(envelope.data);
             else
               pending.reject(
@@ -598,6 +665,7 @@ export class OmpRuntime {
         clearTimeout(pending.timer);
         this.pending.delete(frame.id);
         this.dropPrompt(frame.id);
+        this.finishPerf(pending, frame.success === true ? "success" : "error");
         if (frame.success === true) {
           // 在同一 stdout 数据块内后续帧解码前立即激活协商版本。
           if (pending.command === "negotiate_protocol")
@@ -643,6 +711,11 @@ export class OmpRuntime {
     const line = `${JSON.stringify(frame)}\n`;
     if (Buffer.byteLength(line, "utf8") > this.physicalLimit)
       throw new Error("请求超过 omp 单帧限制，请缩小消息或附件");
+    const perf = getPerformanceLogger();
+    if (perf) {
+      perf.count("transport.bytes.out", Buffer.byteLength(line, "utf8"), { runtimeId: this.performanceId });
+      perf.count("transport.frames.out", 1, { runtimeId: this.performanceId });
+    }
     await new Promise<void>((resolveWrite, reject) =>
       child.stdin.write(line, (error) =>
         error ? reject(error) : resolveWrite(),
@@ -672,13 +745,17 @@ export class OmpRuntime {
         throw new Error("计划正在转换，请先停止或等待完成");
     }
     const id = `desktop-rpc-${randomUUID()}`;
+    const perf = getPerformanceLogger();
+    const timing = perf ? { started: performance.now(), request: this.perfRequestName(command.type), kind: command.type === "prompt" ? "admission" : "native" } : undefined;
     if (internal) this.internalIds.add(id);
     const result = new Promise<unknown>((resolveResult, reject) => {
       const timer = setTimeout(
         () => {
+          const pending = this.pending.get(id);
           this.pending.delete(id);
           this.dropPrompt(id);
           this.internalIds.delete(id);
+          if (pending) this.finishPerf(pending, "timeout");
           reject(
             new Error(
               `omp 请求超时：${command.type}。引擎仍可能在执行，请查看事件/日志后决定是否中止。`,
@@ -697,8 +774,13 @@ export class OmpRuntime {
         timer,
         command: command.type,
         ...(command.type === "prompt" ? { output: [] } : {}),
+        ...(timing ? { perf: timing } : undefined),
       });
       if (command.type === "prompt") this.promptOrder.push(id);
+      if (perf && timing) {
+        perf.count("rpc.begin", 1, { runtimeId: this.performanceId, request: timing.request, kind: timing.kind });
+        perf.observe("rpc.pending", this.pending.size + this.extensionPending.size, { runtimeId: this.performanceId });
+      }
     });
     try {
       await this.write({ ...command, id });
@@ -709,6 +791,7 @@ export class OmpRuntime {
         this.pending.delete(id);
         this.dropPrompt(id);
         this.internalIds.delete(id);
+        this.finishPerf(pending, "error");
         pending.reject(
           error instanceof Error ? error : new Error(String(error)),
         );
@@ -734,9 +817,13 @@ export class OmpRuntime {
     if (!this.connected || !this.commands.has(command))
       throw new Error(`原生 GUI 扩展命令未就绪：${command}`);
     const requestId = `desktop-extension-${randomUUID()}`;
+    const perf = getPerformanceLogger();
+    const timing = perf ? { started: performance.now(), request: this.perfRequestName(command), kind: "extension" } : undefined;
     const result = new Promise<unknown>((resolveResult, reject) => {
       const timer = setTimeout(() => {
+        const pending = this.extensionPending.get(requestId);
         this.extensionPending.delete(requestId);
+        if (pending) this.finishPerf(pending, "timeout");
         reject(new Error(`原生扩展操作超时：${command}`));
       }, 120_000);
       this.extensionPending.set(requestId, {
@@ -744,7 +831,12 @@ export class OmpRuntime {
         reject,
         timer,
         command,
+        ...(timing ? { perf: timing } : undefined),
       });
+      if (perf && timing) {
+        perf.count("rpc.begin", 1, { runtimeId: this.performanceId, request: timing.request, kind: timing.kind });
+        perf.observe("rpc.pending", this.pending.size + this.extensionPending.size, { runtimeId: this.performanceId });
+      }
     });
     try {
       const [, data] = await Promise.all([
@@ -763,6 +855,7 @@ export class OmpRuntime {
       if (pending) {
         clearTimeout(pending.timer);
         this.extensionPending.delete(requestId);
+        this.finishPerf(pending, "error");
       }
     }
   }
@@ -781,7 +874,17 @@ export class OmpRuntime {
           operation.origin.epoch !== action.identity.epoch)
         throw new Error("计划取消操作身份已失效");
       if (!this.planControl) throw new Error("原生计划独立取消通道未就绪");
-      const reply = await cancelPlanOperation(this.planControl, action, this.planControlLifetime.signal);
+      const perf = getPerformanceLogger();
+      const started = perf ? performance.now() : 0;
+      if (perf) perf.event("plan.cancel.begin", { runtimeId: this.performanceId });
+      let reply: PlanSnapshot;
+      try {
+        reply = await cancelPlanOperation(this.planControl, action, this.planControlLifetime.signal);
+        if (perf) perf.event("plan.cancel.end", { runtimeId: this.performanceId, durationMs: performance.now() - started, outcome: "success" });
+      } catch (error) {
+        if (perf) perf.event("plan.cancel.end", { runtimeId: this.performanceId, durationMs: performance.now() - started, outcome: "error" });
+        throw error;
+      }
       const { _planControl: _ignored, ...publicSnapshot } = reply as PlanSnapshot & { _planControl?: unknown };
       snapshot = publicSnapshot;
     } else {
@@ -953,10 +1056,13 @@ export class OmpRuntime {
     for (const map of [this.pending, this.extensionPending]) {
       for (const pending of map.values()) {
         clearTimeout(pending.timer);
+        this.finishPerf(pending, this.closing ? "cancelled" : "error");
         pending.reject(error);
       }
       map.clear();
     }
+    const perf = getPerformanceLogger();
+    if (perf) perf.observe("rpc.pending", 0, { runtimeId: this.performanceId });
     this.promptOrder = [];
   }
 
@@ -977,6 +1083,8 @@ export class OmpRuntime {
    */
   private fail(error: Error): void {
     if (this.fault) return;
+    const perf = getPerformanceLogger();
+    if (perf) perf.event("engine.fault", { runtimeId: this.performanceId });
     this.fault = error;
     this.planControl = undefined;
     this.planControlLifetime.abort();
@@ -988,6 +1096,7 @@ export class OmpRuntime {
     this.rejectAll(error);
     this.readyPending?.reject(error);
     this.readyPending = undefined;
+    if (perf && this.child) perf.event("engine.kill", { runtimeId: this.performanceId, reason: "fault" });
     this.child?.kill();
   }
 
@@ -1004,6 +1113,9 @@ export class OmpRuntime {
       this.planControlLifetime.abort();
       return;
     }
+    const perf = getPerformanceLogger();
+    const started = perf ? performance.now() : 0;
+    if (perf) perf.event("engine.stop.begin", { runtimeId: this.performanceId });
     if (this.planSnapshot?.operation?.status === "running") {
       await this.plan({ op: "cancel", identity: this.planSnapshot.operation.origin,
         operationId: this.planSnapshot.operation.id }).catch(() => undefined);
@@ -1024,25 +1136,38 @@ export class OmpRuntime {
           status: "error",
           error: this.fault.message,
         });
+        if (perf) perf.event("engine.kill", { runtimeId: this.performanceId, reason: "stop-timeout" });
         child.kill();
       }, 30_000);
       // 让原生引擎取消主回复、原生 bash 和侧题，再以 EOF 触发持久化与输出排空。
       if (!this.fault && !child.stdin.destroyed && !child.stdin.writableEnded) {
-        child.stdin.write(
-          `${JSON.stringify({ type: "abort", id: `desktop-stop-${randomUUID()}` })}\n`,
-        );
-        child.stdin.write(
-          `${JSON.stringify({ type: "abort_bash", id: `desktop-stop-${randomUUID()}` })}\n`,
-        );
-        child.stdin.write(
-          `${JSON.stringify({ type: "btw_cancel", id: `desktop-stop-${randomUUID()}` })}\n`,
-        );
+        if (perf) {
+          // 诊断分支只计数相同的三次原生写入，不追加或改写关闭协议。
+          for (const type of ["abort", "abort_bash", "btw_cancel"]) {
+            const line = `${JSON.stringify({ type, id: `desktop-stop-${randomUUID()}` })}\n`;
+            perf.count("transport.bytes.out", Buffer.byteLength(line, "utf8"), { runtimeId: this.performanceId });
+            perf.count("transport.frames.out", 1, { runtimeId: this.performanceId });
+            child.stdin.write(line);
+          }
+        } else {
+          child.stdin.write(
+            `${JSON.stringify({ type: "abort", id: `desktop-stop-${randomUUID()}` })}\n`,
+          );
+          child.stdin.write(
+            `${JSON.stringify({ type: "abort_bash", id: `desktop-stop-${randomUUID()}` })}\n`,
+          );
+          child.stdin.write(
+            `${JSON.stringify({ type: "btw_cancel", id: `desktop-stop-${randomUUID()}` })}\n`,
+          );
+        }
       }
+      if (perf) perf.event("engine.stdin.end", { runtimeId: this.performanceId });
       child.stdin.end();
       try {
         await close;
       } finally {
         clearTimeout(timer);
+        if (perf) perf.event("engine.stop.end", { runtimeId: this.performanceId, durationMs: performance.now() - started, fault: !!this.fault });
         this.shutdownPromise = undefined;
       }
     })();

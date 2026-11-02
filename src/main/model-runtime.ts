@@ -7,6 +7,7 @@ import type {
   SessionOperationRequest,
 } from "../shared/protocol";
 import { OmpRuntime } from "./rpc";
+import { getPerformanceLogger } from "./performance-log";
 
 /** 显式选择必须全部应用成功才可发送，失败不静默退回其他模型。 */
 export async function applyModelSelection(
@@ -31,6 +32,8 @@ export class ModelRuntime {
   constructor(private readonly emit: (frame: RpcFrame) => void) {}
   private key?: string;
   private queue: Promise<unknown> = Promise.resolve();
+  private perfQueueDepth = 0; // 仅启用诊断时维护排队深度。
+  private perfOperationSequence = 0; // 诊断专用队列项标识。
   private readonly runtime = new OmpRuntime((frame) => {
     if (["extension_ui_request", "agents_hub_progress"].includes(frame.type))
       this.emit(frame);
@@ -41,7 +44,28 @@ export class ModelRuntime {
       this.key = undefined;
   });
 
-  private serial<T>(operation: () => Promise<T>): Promise<T> {
+  private serial<T>(name: string, operation: () => Promise<T>): Promise<T> {
+    const perf = getPerformanceLogger();
+    if (perf) {
+      const enqueued = performance.now();
+      const operationId = ++this.perfOperationSequence;
+      const depth = ++this.perfQueueDepth;
+      perf.event("queue.enqueue", { queue: "model", operation: name, operationId, depth });
+      const run = async (): Promise<T> => {
+        const started = performance.now();
+        perf.event("queue.start", { queue: "model", operation: name, operationId, depth: this.perfQueueDepth, waitMs: started - enqueued });
+        let outcome = "success";
+        try { return await operation(); }
+        catch (error) { outcome = "error"; throw error; }
+        finally {
+          this.perfQueueDepth--;
+          perf.event("queue.end", { queue: "model", operation: name, operationId, depth: this.perfQueueDepth, runMs: performance.now() - started, outcome });
+        }
+      };
+      const next = this.queue.then(run, run);
+      this.queue = next.catch(() => undefined);
+      return next;
+    }
     const next = this.queue.then(operation, operation);
     this.queue = next.catch(() => undefined);
     return next;
@@ -52,11 +76,13 @@ export class ModelRuntime {
     extension: string,
     selection?: ModelSelection,
   ): Promise<ModelState> {
-    return this.serial(async () => {
+    return this.serial("prepare", async () => {
       const { sessionPath: _ignored, ...independent } = options;
       const key = JSON.stringify(independent);
       if (key !== this.key) {
         await this.runtime.stop();
+        const perf = getPerformanceLogger();
+        if (perf) perf.event("engine.owner", { runtimeId: this.runtime.performanceId, role: "model" });
         await this.runtime.start(independent, extension, true);
         this.key = key;
       }
@@ -69,14 +95,14 @@ export class ModelRuntime {
   }
 
   subagentHistory(action: Record<string, unknown>): Promise<unknown> {
-    return this.serial(() => this.runtime.subagentHistory(action));
+    return this.serial("subagent-history", () => this.runtime.subagentHistory(action));
   }
 
   /** 配置进程仅提供只读来源检查，绝不在内存配置会话中运行历史代理。 */
   seance<T = unknown>(action: { op: "inspect"; sourceSession: string }): Promise<T> {
     if (action.op !== "inspect")
       return Promise.reject(new Error("配置进程仅允许只读检查 seance 来源"));
-    return this.serial(() => this.runtime.seance<T>({
+    return this.serial("seance-inspect", () => this.runtime.seance<T>({
       op: "inspect",
       sourceSession: action.sourceSession,
     }));
@@ -84,20 +110,20 @@ export class ModelRuntime {
 
   /** 会话改名/删除在无会话的配置进程中执行，避免与用户会话争用租约。 */
   sessionOperation(request: SessionOperationRequest): Promise<void> {
-    return this.serial(() => this.runtime.sessionOperation(request));
+    return this.serial("session-operation", () => this.runtime.sessionOperation(request));
   }
 
   request(command: RpcCommand): Promise<unknown> {
     if (command.type === "agents_hub")
-      return this.serial(() =>
+      return this.serial("agents-hub", () =>
         this.runtime.agentsHub(command.action as Record<string, unknown>),
       );
     if (command.type === "model_hub")
-      return this.serial(() =>
+      return this.serial("model-hub", () =>
         this.runtime.modelHub(command.action as Record<string, unknown>),
       );
     if (command.type === "cycle_role_model")
-      return this.serial(() =>
+      return this.serial("cycle-role-model", () =>
         this.runtime.cycleRoleModel(String(command.direction)),
       );
     const fields: Record<string, string[]> = {
@@ -121,11 +147,11 @@ export class ModelRuntime {
         return Promise.reject(new Error(`无效的模型参数：${field}`));
       safe[field] = value;
     }
-    return this.serial(() => this.runtime.request(safe));
+    return this.serial("request", () => this.runtime.request(safe));
   }
 
   stop(): Promise<void> {
-    return this.serial(async () => {
+    return this.serial("stop", async () => {
       this.key = undefined;
       await this.runtime.stop();
     });

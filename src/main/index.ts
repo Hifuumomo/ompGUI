@@ -51,6 +51,9 @@ import {
   sessionsRoot,
 } from "./sessions";
 import { changesToolSession } from "./tool-preview";
+import { getPerformanceLogger, startPerformanceLogging } from "./performance-log";
+import { registerPerformanceIPC } from "./performance-ipc";
+import { PERF_RENDERER_ARGUMENT } from "../shared/performance";
 
 const here = __dirname;
 const channels = {
@@ -184,6 +187,9 @@ let trustedURL = "";
 let quitting = false;
 let launchPreferences: LaunchOptions & { autoConnect?: boolean };
 let lifecycle: Promise<unknown> = Promise.resolve();
+let perfQueueDepth = 0; // 诊断关闭时不维护额外队列状态。
+let perfOperationSequence = 0; // 仅诊断分支递增，用于关联同一队列项。
+let disposePerformanceIPC: (() => void) | undefined;
 let planDirty = false;
 let planCloseRequest: { id: string; owner: BrowserWindow; quit: boolean } | undefined;
 let planCloseAllowed = false;
@@ -391,7 +397,27 @@ async function savePreferences(options: LaunchOptions): Promise<void> {
  * 参数：[in] operation 生命周期操作。
  * 返回值：该操作的真实结果。
  */
-function serial<T>(operation: () => Promise<T>): Promise<T> {
+function serial<T>(name: string, operation: () => Promise<T>): Promise<T> {
+  const perf = getPerformanceLogger();
+  if (perf) {
+    const enqueued = performance.now();
+    const operationId = ++perfOperationSequence;
+    perf.event("queue.enqueue", { queue: "main", operation: name, operationId, depth: ++perfQueueDepth });
+    const run = async (): Promise<T> => {
+      const started = performance.now();
+      perf.event("queue.start", { queue: "main", operation: name, operationId, depth: perfQueueDepth, waitMs: started - enqueued });
+      let outcome = "success";
+      try { return await operation(); }
+      catch (error) { outcome = "error"; throw error; }
+      finally {
+        perfQueueDepth--;
+        perf.event("queue.end", { queue: "main", operation: name, operationId, depth: perfQueueDepth, runMs: performance.now() - started, outcome });
+      }
+    };
+    const result = lifecycle.then(run, run);
+    lifecycle = result.catch(() => undefined);
+    return result;
+  }
   const result = lifecycle.then(operation, operation);
   lifecycle = result.catch(() => undefined);
   return result;
@@ -645,7 +671,7 @@ function registerIPC(): void {
     const options = parseLaunch(input);
     const selection = parseModelSelection(selected);
     const taskModel = text(selectedTask, "任务模型", true);
-    return serial(async () => {
+    return serial("start", async () => {
       const owner = await engines.start(options, bridgePath(), true, async ({ runtime }) => {
         await applyModelSelection(runtime, selection);
         if (taskModel) await runtime.modelHub({ op: "temporary", selector: taskModel, target: "task" });
@@ -660,21 +686,21 @@ function registerIPC(): void {
   handle(channels.startSessionEngine, (input) => {
     const options = parseLaunch(input);
     if (!options.sessionPath) throw new Error("缺少会话路径");
-    return serial(async () => {
+    return serial("start-session-engine", async () => {
       await engines.start(options, bridgePath(), false);
       return engines.list();
     });
   });
   handle(channels.stopSessionEngine, (input) => {
     const path = resolve(text(input, "会话路径")!);
-    return serial(async () => {
+    return serial("stop-session-engine", async () => {
       await engines.stop(engines.find(path));
       return engines.list();
     });
   });
   handle(channels.stop, () => {
     const owner = engines.active;
-    return serial(() => engines.stop(owner));
+    return serial("stop", () => engines.stop(owner));
   });
   /**
    * 校验命令白名单，并在真实响应的原始代数内更新只读工具证据。
@@ -708,7 +734,7 @@ function registerIPC(): void {
     return requestNative(command as RpcCommand);
   });
   handle(channels.openSession, (input) =>
-    serial(async () => {
+    serial("open-session", async () => {
       const path = resolve(text(input, "会话路径")!);
       // 先校验可读性，再切换查看目标；保留本应用的其他连接，绝不接管外部 omp。
       await readSessionHeader(path);
@@ -829,7 +855,7 @@ function registerIPC(): void {
   handle(channels.treeCancel, () => engines.requireActive().runtime.cancelTreeNavigation());
   handle(channels.treeDelete, (input) => {
     const { runtime, toolFiles } = engines.requireActive();
-    return serial(async () => {
+    return serial("tree-delete", async () => {
       const request = object(input);
       if (!Array.isArray(request.entryIds)) throw new Error("缺少待删除子树");
       const value = {
@@ -904,7 +930,7 @@ function registerIPC(): void {
       | { op: "runBatch"; requests: SeanceConsultation[] },
   ): Promise<T> {
     const { runtime } = engines.requireActive();
-    return serial(async () => {
+    return serial("seance-run", async () => {
       if (readOnlyPath) throw new Error("请先连接当前目标会话再运行 seance");
       const state = await runtime.request<SessionState>({ type: "get_state" });
       if (
@@ -953,7 +979,7 @@ function registerIPC(): void {
     clipboard.writeText(parts.join(kind === "paths" ? "\n" : "\n\n"));
   });
   handle(channels.sessionRename, (input, name, agentDir) =>
-    serial(async () => {
+    serial("session-rename", async () => {
       const path = sessionFile(input, agentDir);
       const title = text(name, "会话名称")!.trim();
       if (!title) throw new Error("会话名称不能为空");
@@ -974,7 +1000,7 @@ function registerIPC(): void {
     }),
   );
   handle(channels.sessionDelete, (input, agentDir) =>
-    serial(async () => {
+    serial("session-delete", async () => {
       const path = sessionFile(input, agentDir);
       const { id } = await readSessionHeader(path);
       // 自身连接持有租约会使删除被拒；只排空本应用连接，绝不停止外部 omp。
@@ -1120,6 +1146,8 @@ function registerIPC(): void {
  * 返回值：完成页面加载的 Promise。
  */
 async function createWindow(): Promise<void> {
+  const perf = getPerformanceLogger();
+  if (perf) perf.event("window.create");
   window = new BrowserWindow({
     width: 1440,
     height: 940,
@@ -1134,6 +1162,7 @@ async function createWindow(): Promise<void> {
       contextIsolation: true,
       sandbox: true,
       webviewTag: false,
+      ...(perf ? { additionalArguments: [PERF_RENDERER_ARGUMENT] } : undefined),
     },
   });
   const owner = window;
@@ -1155,7 +1184,10 @@ async function createWindow(): Promise<void> {
     (_contents, _permission, callback) => callback(false),
   );
   window.webContents.session.setPermissionCheckHandler(() => false);
-  owner.once("ready-to-show", () => owner.show());
+  owner.once("ready-to-show", () => {
+    if (perf) perf.event("window.ready-to-show");
+    owner.show();
+  });
   owner.webContents.on("render-process-gone", () => {
     const request = planCloseRequest;
     if (request?.owner === owner) {
@@ -1164,12 +1196,14 @@ async function createWindow(): Promise<void> {
     }
   });
   owner.on("close", (event) => {
+    if (perf) perf.event("window.close", { blocked: planDirty && !planCloseAllowed });
     if (planDirty && !planCloseAllowed) {
       event.preventDefault();
       requestPlanClose(owner, false);
     }
   });
   owner.on("closed", () => {
+    if (perf) perf.event("window.closed");
     planDirty = false;
     planCloseRequest = undefined;
     planCloseAllowed = false;
@@ -1192,6 +1226,7 @@ async function createWindow(): Promise<void> {
     trustedURL = pathToFileURL(rendererPath).href;
     await window.loadFile(rendererPath);
   }
+  if (perf) perf.event("window.loaded");
 }
 
 // 单实例让应用拥有一个明确的 CLI 生命周期；另一窗口无法通过 IPC 注入进程参数。
@@ -1206,6 +1241,21 @@ else {
   app
     .whenReady()
     .then(async () => {
+      if (!app.isPackaged && process.env.OMPGUI_PERF === "1") {
+        const perf = await startPerformanceLogging({
+          directory: join(app.getPath("userData"), "performance"),
+          getAppMetrics: () => app.getAppMetrics(),
+        });
+        if (perf) {
+          perf.event("app.ready");
+          disposePerformanceIPC = registerPerformanceIPC(assertSender, (sample) => {
+            perf.event("renderer.sample", {
+              durationMs: sample.durationMs, longTaskCount: sample.longTaskCount,
+              longTaskTotalMs: sample.longTaskTotalMs, longTaskMaxMs: sample.longTaskMaxMs,
+            });
+          });
+        }
+      }
       browserSession = createBrowserSession();
       launchPreferences = await loadPreferences();
       registerIPC();
@@ -1225,8 +1275,13 @@ else {
       );
   });
   app.on("window-all-closed", () => {
+    const perf = getPerformanceLogger();
+    if (perf) {
+      perf.event("window.all-closed");
+      if (quitting) return; // 启用诊断时由最终 flush 完成后统一退出。
+    }
     if (process.platform !== "darwin") app.quit();
-    else void Promise.all([serial(() => engines.stopAll()), modelRuntime.stop()]);
+    else void Promise.all([serial("stop-all", () => engines.stopAll()), modelRuntime.stop()]);
   });
   app.on("before-quit", (event) => {
     if (quitting) return;
@@ -1236,9 +1291,32 @@ else {
       return;
     }
     quitting = true;
+    const perf = getPerformanceLogger();
+    const started = perf ? performance.now() : 0;
+    const engineCount = perf ? engines.size : 0;
+    if (perf) {
+      perf.event("app.shutdown.begin", { engineCount });
+      let finalizing = false;
+      let flushed = false;
+      // will-quit 在原生窗口关闭后触发：仅推迟最终退出，不主动关闭窗口或增加窗口等待器。
+      app.on("will-quit", (quitEvent) => {
+        if (flushed) return;
+        quitEvent.preventDefault();
+        if (finalizing) return;
+        finalizing = true;
+        perf.event("app.shutdown.end", { durationMs: performance.now() - started, engineCount });
+        disposePerformanceIPC?.();
+        disposePerformanceIPC = undefined;
+        const finish = (): void => {
+          flushed = true;
+          app.quit();
+        };
+        void perf.close().then(finish, finish);
+      });
+    }
     browserPanel?.dispose();
     void Promise.all([
-      serial(() => engines.stopAll()),
+      serial("stop-all", () => engines.stopAll()),
       modelRuntime.stop(),
     ]).finally(() => app.quit());
   });
