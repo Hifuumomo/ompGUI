@@ -28,7 +28,7 @@ it("多次压缩保留全部早期消息，摘要位于发生位置，排除旁�
       firstKeptEntryId: "u2",
     }),
     entry("a2", "c1", { message: { role: "assistant", content: "回答2" } }),
-    entry("meta", "a2", { type: "model_change" }),
+    entry("meta", "a2", { type: "title_change" }),
     entry("c2", "meta", {
       type: "compaction",
       summary: "压缩2",
@@ -97,6 +97,65 @@ it("计划状态仅作为当前分支显示元数据恢复，保留原生时间�
   expect(messages[1]).toEqual({ role: "custom", customType: "ompgui-plan-status", details: status, display: true, timestamp: Date.parse("2026-10-13T00:00:00Z") });
   expect(messages[1].content).toBeUndefined();
   expect(sessionHistoryMessages({ entries, leafId: "u" })).toEqual([{ role: "user", content: "先做计划" }]);
+});
+
+it("模型、思考级别和模式变更沿父链恢复为显示事件，不丢失前后消息", () => {
+  const entries = [
+    entry("u", null, { message: { role: "user", content: "继续" } }),
+    entry("model", "u", { type: "model_change", model: "openai-codex/gpt-6.1-sol" }),
+    entry("thinking", "model", { type: "thinking_level_change", thinkingLevel: "medium" }),
+    entry("mode", "thinking", { type: "mode_change", mode: "plan", data: { planFilePath: "local://PLAN.md" } }),
+    entry("tier", "mode", { type: "service_tier_change" }),
+    entry("title", "tier", { type: "title_change" }),
+    entry("a", "title", { message: { role: "assistant", content: "已继续" } }),
+    entry("other", "u", { type: "model_change", model: "旁支模型" }),
+  ];
+  const messages = sessionHistoryMessages({ entries, leafId: "a" });
+  expect(messages).toHaveLength(5);
+  expect(messages[0].content).toBe("继续");
+  expect(messages[4].content).toBe("已继续");
+  expect(messages.slice(1, 4)).toEqual([
+    expect.objectContaining({ role: "custom", customType: "ompgui-session-event", display: true, details: { event: "model_change", model: "openai-codex/gpt-6.1-sol" } }),
+    expect.objectContaining({ role: "custom", customType: "ompgui-session-event", display: true, details: { event: "thinking_level_change", thinkingLevel: "medium" } }),
+    expect.objectContaining({ role: "custom", customType: "ompgui-session-event", display: true, details: { event: "mode_change", mode: "plan" } }),
+  ]);
+  expect(messages[1].timestamp).toBe(Date.parse(entries[1].timestamp));
+});
+
+it("工具开始和模型提及保留隐藏证据，无关自定义状态仍被丢弃", () => {
+  const started = { toolCallId: "read-1", toolName: "read", startedAt: "2026-10-13T00:00:00Z", args: { path: "README.md" } };
+  const mention = { agent: "m1", selector: "openai-codex/gpt-6-luna", name: "GPT-6-Luna" };
+  const entries = [
+    entry("u", null, { message: { role: "user", content: "读取" } }),
+    entry("start", "u", { type: "custom", customType: "tool_execution_start", data: started }),
+    entry("mention", "start", { type: "custom", customType: "model_mention", data: mention }),
+    entry("internal", "mention", { type: "custom", customType: "session_exit", data: {} }),
+  ];
+  const messages = sessionHistoryMessages({ entries, leafId: "internal" });
+  expect(messages).toHaveLength(3);
+  expect(messages.slice(1)).toEqual([
+    { role: "custom", customType: "tool_execution_start", display: false, details: started, timestamp: Date.parse(entries[1].timestamp) },
+    { role: "custom", customType: "model_mention", display: false, details: mention, timestamp: Date.parse(entries[2].timestamp) },
+  ]);
+  expect(messages[1].details).toBe(started);
+});
+
+it("事件和隐藏证据缺少可选字段时仍可转换", () => {
+  const entries = [
+    entry("model", null, { type: "model_change" }),
+    entry("thinking", "model", { type: "thinking_level_change" }),
+    entry("mode", "thinking", { type: "mode_change" }),
+    entry("start", "mode", { type: "custom", customType: "tool_execution_start" }),
+    entry("mention", "start", { type: "custom", customType: "model_mention" }),
+  ];
+  const messages = sessionHistoryMessages({ entries, leafId: "mention" });
+  expect(messages).toHaveLength(5);
+  expect(messages.slice(0, 3).map((message) => message.details)).toEqual([
+    { event: "model_change" },
+    { event: "thinking_level_change" },
+    { event: "mode_change" },
+  ]);
+  expect(messages.slice(3).every((message) => message.display === false && message.details === undefined)).toBe(true);
 });
 
 it("缺失或循环父链明确报错，不静默显示不完整历史", () => {

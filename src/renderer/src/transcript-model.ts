@@ -1,11 +1,13 @@
 import type { AgentMessage, MessageContent } from "../../shared/protocol";
 import type { TimelineMessage, ToolActivity } from "./session";
 import { isAgentMessage, isBackgroundOutput, noticeLabel } from "./TranscriptNotice";
+import { clearStreamingToolPreview, streamingToolPreview } from "./tool-stream-preview";
 import type {
   FollowupTrigger,
   ProcessItem,
   ToolEvidence,
   TranscriptUnit,
+  TranscriptMode,
 } from "./transcript-types";
 
 export const executableNames: Readonly<Record<string, true>> = {
@@ -34,11 +36,14 @@ function callEvidence(
   part: MessageContent,
   previous?: ToolEvidence,
 ): ToolEvidence {
+  if (part.arguments !== undefined) clearStreamingToolPreview(part.id);
+  const streamingArgs = part.arguments === undefined ? streamingToolPreview(part) : undefined;
   return {
     ...previous,
     id,
     name: part.name ?? "工具",
-    args: part.arguments,
+    args: streamingArgs ? undefined : part.arguments,
+    streamingArgs,
     call: part,
   };
 }
@@ -59,7 +64,11 @@ function resultEvidence(
 }
 
 /** 配对完整历史证据及实时状态，保持首次发现的工具顺序。 */
-function collectEvidence(messages: TimelineMessage[], tools: ToolActivity[]) {
+function collectEvidence(
+  messages: TimelineMessage[],
+  tools: ToolActivity[],
+  rawMessages: TimelineMessage[],
+) {
   const evidence = new Map<string, ToolEvidence>();
   for (const { message } of messages) {
     const parts = Array.isArray(message.content) ? message.content : [];
@@ -80,15 +89,26 @@ function collectEvidence(messages: TimelineMessage[], tools: ToolActivity[]) {
       ...previous,
       id: live.id,
       name: previous?.name ?? live.name,
-      args: previous?.args ?? live.args,
+      args: previous?.call && previous.call.arguments === undefined
+        ? undefined : previous?.args ?? live.args,
       live,
     });
+  }
+  for (const { message } of rawMessages) {
+    if (message.customType !== "tool_execution_start") continue;
+    const details = message.details;
+    if (!details || typeof details !== "object" || Array.isArray(details)) continue;
+    const { toolCallId, startedAt } = details as Record<string, unknown>;
+    if (typeof toolCallId !== "string" || typeof startedAt !== "string") continue;
+    const timestamp = Date.parse(startedAt);
+    const tool = evidence.get(toolCallId);
+    if (tool && Number.isFinite(timestamp)) tool.startedAt ??= timestamp;
   }
   return evidence;
 }
 
 /** 创建局部时间线累积器，只修改自身持有的数据，不修改原始证据。 */
-function createTimeline() {
+function createTimeline(mode: TranscriptMode) {
   const units: TranscriptUnit[] = [];
   const rendered = new Set<string>();
   let pending: ProcessItem[] = [];
@@ -102,7 +122,10 @@ function createTimeline() {
   }
   function toolRow(tool: ToolEvidence, key: string) {
     // 在时间线入口统一隐藏，历史结果和实时工具都不产生行或空过程组。
-    if (hiddenToolNames.has(tool.name) || rendered.has(tool.id)) return;
+    if (
+      (mode === "compact" ? hiddenToolNames.has(tool.name) : tool.name === "todo") ||
+      rendered.has(tool.id)
+    ) return;
     rendered.add(tool.id);
     process({ kind: "tool", key, tool });
   }
@@ -163,6 +186,7 @@ function createMessageChunks(item: TimelineMessage, timeline: TimelineBuilder) {
 
 interface MessageContext {
   readonly item: TimelineMessage;
+  readonly mode?: TranscriptMode;
   readonly evidence: ReadonlyMap<string, ToolEvidence>;
   readonly timeline: TimelineBuilder;
 }
@@ -192,12 +216,7 @@ function appendContent({ item, evidence, timeline }: MessageContext) {
     chunks.flush(false);
     const tool = part.id ? evidence.get(part.id) : undefined;
     timeline.toolRow(
-      tool ?? {
-        id: key,
-        name: part.name ?? "工具",
-        args: part.arguments,
-        call: part,
-      },
+      tool ?? callEvidence(key, part),
       key,
     );
   }
@@ -211,6 +230,7 @@ function appendMessage(context: MessageContext) {
   if (
     isBackgroundOutput(message) ||
     isAgentMessage(message) ||
+    (context.mode === "full" && message.customType === "launch-completion") ||
     message.role === "compactionSummary" ||
     isErrorOnlyMessage(message)
   ) {
@@ -252,19 +272,125 @@ function appendMessage(context: MessageContext) {
   });
 }
 
+/** 读取展示元数据对象，拒绝数组及原始值。 */
+function metadata(value: unknown): Record<string, unknown> {
+  return value !== null && typeof value === "object" && !Array.isArray(value)
+    ? value as Record<string, unknown> : {};
+}
+
+/** 模型记录可为完整标识或原生对象；只显示真实模型名称。 */
+function modelName(value: unknown): string | undefined {
+  const object = metadata(value);
+  const name = typeof value === "string" ? value
+    : typeof object.id === "string" ? object.id
+    : typeof object.name === "string" ? object.name : undefined;
+  return name?.split("/").at(-1);
+}
+
+/** 仅格式化已记录的 token 数，不补造压缩后的数值。 */
+function tokenCount(value: unknown): string | undefined {
+  return typeof value === "number" && Number.isFinite(value)
+    ? value >= 1000 ? `${Math.round(value / 1000)}K` : String(value)
+    : undefined;
+}
+
+/** 保留紧凑模式消息，仅在完整模式生成合并事件与摘要展示副本。 */
+function prepareTimelineMessages(source: TimelineMessage[], mode: TranscriptMode) {
+  const messages: TimelineMessage[] = [];
+  const users: { key: string; files: NonNullable<AgentMessage["files"]>; models: AgentMessage[] }[] = [];
+  let events = new Map<string, Record<string, unknown>>();
+  let eventItem: TimelineMessage | undefined;
+  /** 相邻事件同类取最后值，并以首条记录保持稳定位置。 */
+  function flushEvents() {
+    if (!eventItem) return;
+    const model = modelName(events.get("model_change")?.model);
+    const thinking = events.get("thinking_level_change")?.thinkingLevel;
+    const modeName = events.get("mode_change")?.mode;
+    const text = [
+      model ? `模型切换为 ${model}` : "",
+      typeof thinking === "string" && thinking ? `思考 ${thinking}` : "",
+      typeof modeName === "string" && modeName ? `进入 ${modeName} 模式` : "",
+    ].filter(Boolean).join(" · ");
+    if (text) messages.push({
+      ...eventItem,
+      message: { ...eventItem.message, customType: "ompgui-event-divider", content: text },
+    });
+    eventItem = undefined;
+    events = new Map();
+  }
+  for (const item of source) {
+    const message = item.message;
+    if (message.role === "fileMention" || message.customType === "model_mention") {
+      const user = users.at(-1);
+      if (user) {
+        if (message.role === "fileMention") user.files.push(...(message.files ?? []));
+        else user.models.push(message);
+      }
+      continue;
+    }
+    if (mode === "full" && message.customType === "ompgui-session-event") {
+      if (users.length) {
+        const details = metadata(message.details);
+        if (typeof details.event === "string") {
+          eventItem ??= item;
+          events.set(details.event, details);
+        }
+      }
+      continue;
+    }
+    // 内部记录不会隔开相邻的可见会话事件。
+    if (message.display === false) { messages.push(item); continue; }
+    flushEvents();
+    if (message.role === "user") users.push({ key: item.key, files: [...(message.files ?? [])], models: [] });
+    if (mode === "full" && (
+      message.role === "developer" || message.customType === "date-cwd-reminder"
+    )) continue;
+    if (mode === "full" && (
+      message.role === "compactionSummary" ||
+      message.role === "branchSummary" ||
+      message.customType === "handoff"
+    )) {
+      const before = tokenCount(message.tokensBefore);
+      const after = tokenCount(message.tokensAfter);
+      const handoff = message.customType === "handoff";
+      const content = typeof message.content === "string" ? message.content
+        : message.content?.filter((part) => part.type === "text").map((part) => part.text ?? "").join("\n") ?? "";
+      const summary = handoff ? content.replace(/<\/?handoff-context>/g, "").trim() : message.summary;
+      const text = handoff ? "会话交接 · 点击展开"
+        : message.role === "branchSummary" ? "分支摘要"
+        : `上下文已压缩${before ? ` ${before}${after ? ` → ${after}` : ""}` : ""}`;
+      messages.push({ ...item, message: {
+        ...message, role: "custom", customType: "ompgui-event-divider",
+        content: text, details: { detail: summary },
+      } });
+    } else messages.push(item);
+  }
+  flushEvents();
+  return { messages, users };
+}
+
 /** 按真实 id 配对工具，依次保留正文、过程块和未落入历史的实时工具。 */
 export function transcriptUnits(
   messages: TimelineMessage[],
   tools: ToolActivity[],
+  mode: TranscriptMode = "compact",
 ): TranscriptUnit[] {
-  // 内部通知和文件引用不进入展示时间线，避免空占位或打断同轮执行过程。
-  const visibleMessages = messages.filter(
-    ({ message }) =>
-      message.display !== false && message.role !== "fileMention",
+  const prepared = prepareTimelineMessages(messages, mode);
+  const visibleMessages = prepared.messages.filter(
+    ({ message }) => message.display !== false && message.role !== "fileMention",
   );
-  const evidence = collectEvidence(visibleMessages, tools);
-  const timeline = createTimeline();
+  const evidence = collectEvidence(visibleMessages, tools, messages);
+  const timeline = createTimeline(mode);
   for (const original of visibleMessages) {
+    if (mode === "full" && original.message.role === "bashExecution") {
+      timeline.toolRow({
+        id: original.key,
+        name: "bash",
+        args: { command: original.message.command },
+        resultMessage: original.message,
+      }, original.key);
+      continue;
+    }
     let item = original;
     if (original.message.role === "assistant") {
       // 仅精确识别引擎静默中止；展示副本去掉内部状态，原始会话证据保持不变。
@@ -289,12 +415,16 @@ export function transcriptUnits(
         },
       };
     }
-    appendMessage({ item, evidence, timeline });
+    appendMessage({ item, evidence, timeline, mode });
   }
   for (const tool of evidence.values()) {
     if (tool.live) timeline.toolRow(tool, `live:${tool.id}`);
   }
-  return groupTurnProcesses(timeline.result());
+  return groupTurnProcesses(timeline.result()).map((unit) => {
+    if (unit.kind !== "message" || unit.message.role !== "user") return unit;
+    const owner = prepared.users.find((user) => unit.key === user.key || unit.key.startsWith(`${user.key}:text:`));
+    return owner ? { ...unit, mentions: owner.files, modelMentions: owner.models } : unit;
+  });
 }
 
 type MessageUnit = Extract<TranscriptUnit, { kind: "message" }>;
@@ -316,7 +446,7 @@ function leadingNotices(items: ProcessItem[]): NoticeItem[] {
   for (const item of items) {
     if (
       item.kind !== "message" ||
-      !(isBackgroundOutput(item.message) || isAgentMessage(item.message))
+      !(isBackgroundOutput(item.message) || isAgentMessage(item.message) || item.message.customType === "launch-completion")
     )
       break;
     notices.push(item);
@@ -345,6 +475,11 @@ function groupTurnProcesses(units: TranscriptUnit[]): TranscriptUnit[] {
     pending = [];
   }
   for (const unit of units) {
+    if (unit.kind === "message" && unit.message.customType === "ompgui-event-divider") {
+      if (ended || !pending.length) result.push(unit);
+      else pending.push({ kind: "process", key: unit.key, items: [unit] });
+      continue;
+    }
     if (unit.kind === "message" && unit.message.role !== "assistant") {
       flush();
       ended = undefined;

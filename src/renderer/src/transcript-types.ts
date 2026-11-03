@@ -14,12 +14,20 @@ export interface ToolInspection {
   resultMessage?: AgentMessage;
 }
 
+export type TranscriptMode = "full" | "compact";
+
 export interface TranscriptProps {
   messages: TimelineMessage[];
   tools: ToolActivity[];
   sessionId: string;
+  /** 当前项目目录，仅用于工具展示中的相对路径标签。 */
+  cwd?: string;
   busy?: boolean;
   inlineProcess?: boolean;
+  /** full：独立工具框；compact：现有过程组（默认）。 */
+  mode?: TranscriptMode;
+  /** 打开子代理面板；缺省时代理名称为纯文本。 */
+  onOpenSubagent?: () => void;
   /** 主会话显示左侧提示词目录；回退预览等嵌入场景关闭。 */
   outline?: boolean;
   onOpenFile?: (href: string) => Promise<void>;
@@ -37,6 +45,10 @@ export interface ToolEvidence {
   call?: MessageContent;
   resultMessage?: AgentMessage;
   live?: ToolActivity;
+  /** 隐藏开始记录提供的原生时间戳（毫秒）。 */
+  startedAt?: number;
+  /** 仅供展示的未完成参数，不参与文件授权。 */
+  streamingArgs?: Readonly<Record<string, string>>;
 }
 
 export type ProcessItem =
@@ -66,6 +78,8 @@ export type TranscriptUnit =
       /** trigger：迟到的后台结果/代理来信；followup：模型对其的回复。 */
       segment?: "trigger" | "followup";
       followup?: FollowupTrigger;
+      mentions?: AgentMessage["files"];
+      modelMentions?: AgentMessage[];
     }
   | {
       kind: "lateDivider";

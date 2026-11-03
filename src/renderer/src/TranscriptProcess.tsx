@@ -5,6 +5,9 @@ import { type ProcessContext } from "./TranscriptToolRow";
 import { groupToolItems, ToolGroup } from "./TranscriptToolGroup";
 import { ProcessSummary } from "./ProcessSummary";
 import { MessageBody, roleLabels } from "./TranscriptContent";
+import { ProcessFold } from "./ProcessFold";
+import { CardItems } from "./tool-cards/CardItems";
+import { cardStatus } from "./tool-card-model";
 
 function ThinkingText({
   item,
@@ -18,29 +21,34 @@ function ThinkingText({
 export function ProcessGroup({
   items,
   sessionId,
+  cwd,
   active,
   startedAt,
   endedAt,
   inline,
   followup,
+  layout,
 }: {
   items: ProcessItem[];
   sessionId: string;
+  cwd?: string;
   active?: boolean;
   startedAt?: number;
   endedAt?: number;
   inline?: boolean;
   followup?: boolean;
+  layout?: "cards";
 }) {
   const id = useId();
   const details = useRef<HTMLDetailsElement>(null);
   // 只在整轮运行状态改变时控制折叠，普通消息刷新保留用户手动展开状态。
   useEffect(() => {
-    if (active !== undefined && details.current) details.current.open = active;
-  }, [active]);
+    if (layout !== "cards" && active !== undefined && details.current) details.current.open = active;
+  }, [active, layout]);
   const [expanded, setExpanded] = useState<Readonly<Record<string, number>>>(
     {},
   );
+  const [collapsed, setCollapsed] = useState(false);
   function toggle(toolId: string, index: number) {
     setExpanded((current) => {
       if (current[toolId] !== index) return { ...current, [toolId]: index };
@@ -51,10 +59,19 @@ export function ProcessGroup({
   }
   const context: ProcessContext = {
     sessionId,
+    cwd,
     expanded,
     toggle,
     panelId: (toolId) => `${id}-${encodeURIComponent(toolId)}`,
   };
+  if (layout === "cards") return <ProcessFold
+    collapsed={collapsed}
+    onToggle={() => setCollapsed((value) => !value)}
+    active={active ?? items.some((item) => item.kind === "tool" ? cardStatus(item.tool) === "running" : item.kind === "thinking" && item.streaming)}
+    startedAt={startedAt}
+    endedAt={endedAt}
+    failures={items.filter((item) => item.kind === "tool" && cardStatus(item.tool) === "error").length}
+  ><CardItems items={items} context={context} /></ProcessFold>;
   // 回退目标直接展示原有操作标题，避免新增默认收起的通用过程层。
   if (inline) return followup
     ? <div className="process-group followup"><ProcessItems items={items} context={context} /></div>

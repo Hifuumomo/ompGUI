@@ -57,6 +57,44 @@ function operation(name: string): string {
   return "";
 }
 
+/** 复用原生工具别名分类，仅供展示路由。参数：[in] name 工具名。返回值：操作类别。 */
+export function toolOperation(name: string): string {
+  return operation(name);
+}
+
+/** 从补丁提取移动记录，不提供文件授权。参数：[in] input 补丁。返回值：有序源和目标。 */
+export function patchMoves(input: string): { from: string; to: string }[] {
+  const moves: { from: string; to: string }[] = [];
+  let active = false;
+  let from: string | undefined;
+  for (const line of input.split(/\r?\n/)) {
+    if (line === "*** Begin Patch") {
+      active = true;
+      from = undefined;
+      continue;
+    }
+    if (line === "*** End Patch") {
+      active = false;
+      from = undefined;
+      continue;
+    }
+    if (!active) continue;
+    const hash = /^\[([^\r\n]+)#[0-9a-f]{4}\]$/i.exec(line);
+    const header = /^\*\*\* (Update|Add|Delete) File: (.+)$/.exec(line);
+    if (hash) from = hash[1];
+    else if (header) from = header[1] === "Update" ? header[2] : undefined;
+    else {
+      const move = /^(?:MV (?:"([^"\r\n]+)"|([^\r\n]+))|\*\*\* Move to: (.+))$/.exec(line);
+      const to = move?.[1] ?? move?.[2] ?? move?.[3];
+      if (from && to) {
+        moves.push({ from, to });
+        from = to;
+      }
+    }
+  }
+  return moves;
+}
+
 /**
  * 只解析完整 JSON；流式残片不提供文件授权证据。
  * 参数：[in] args 原始参数。返回值：完整解码值或未解析的原文。

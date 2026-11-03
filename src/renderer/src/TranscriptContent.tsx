@@ -93,11 +93,19 @@ function SearchOutput({ text }: { text: string }) {
   return <pre className="inline-search-output">{nodes}</pre>;
 }
 
-/** 执行输出按行数折叠中间部分：总行数超过预览行数时只渲染首尾，截断仅在渲染层，text 保持完整。[in] text：完整输出。返回值：输出节点。 */
-export function ExecutableOutput({ text }: { text: string }) {
+/** 执行输出默认折叠中间部分；卡片已限定可见范围时可禁用折叠，完整 text 与原生链接保持不变。[in] text：完整输出；[in] collapse：是否折叠首尾之外的行。返回值：输出节点。 */
+export function ExecutableOutput({
+  text,
+  collapse = true,
+}: {
+  text: string;
+  collapse?: boolean;
+}) {
   const [expanded, setExpanded] = useState(false);
   const id = useId();
-  const { head, tail, omitted } = splitHeadTail(text);
+  const { head, tail, omitted } = collapse
+    ? splitHeadTail(text)
+    : { head: text, tail: "", omitted: 0 };
   const visible = omitted === 0 || expanded ? [text] : [head, tail];
   const [first, second] = useOutputLinks(visible, "shell");
   if (omitted === 0 || expanded)
@@ -157,6 +165,8 @@ interface OutputOptions {
   /** grep/glob 类搜索结果：按行识别文件位置。 */
   search?: boolean;
   executable: boolean;
+  /** 调用方已经限定输出范围时，禁用第二次首尾折叠。 */
+  collapse?: boolean;
   path?: string;
   wrap?: boolean;
   fileRead?: boolean;
@@ -190,7 +200,7 @@ function OutputText({
       />
     );
   return options.executable ? (
-    <ExecutableOutput text={text} />
+    <ExecutableOutput text={text} collapse={options.collapse} />
   ) : (
     options.search ? (
       <SearchOutput text={text} />
@@ -286,13 +296,14 @@ function ToolOutputContent({
 export function ToolOutput({
   result,
   executable,
+  collapse,
   path,
   wrap,
   fileRead,
   maxLines,
   search,
 }: { result: unknown } & OutputOptions) {
-  const options = { executable, path, wrap, fileRead, maxLines, search };
+  const options = { executable, collapse, path, wrap, fileRead, maxLines, search };
   if (typeof result === "string")
     return <OutputText text={result} options={options} />;
   if (result === null || typeof result !== "object")

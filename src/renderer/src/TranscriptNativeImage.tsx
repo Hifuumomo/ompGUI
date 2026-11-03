@@ -1,13 +1,15 @@
 import type { MessageContent } from "../../shared/protocol";
 import { readable } from "./session";
 
-/** 呈现原生内嵌图片，拒绝 SVG 和外部资源。[in] image：图片载荷；[in] label：说明。返回值：安全栅格图片或完整未加载证据。 */
+/** 呈现原生内嵌图片，拒绝 SVG 和外部资源；仅校验通过时提供可选放大入口。[in] image：图片载荷；[in] label：说明；[in] onOpen：接收安全数据地址和触发按钮。返回值：安全栅格图片或完整未加载证据。 */
 export function NativeImage({
   image,
   label,
+  onOpen,
 }: {
   image: MessageContent;
   label: string;
+  onOpen?: (source: string, trigger: HTMLButtonElement) => void;
 }) {
   const safe =
     typeof image.mimeType === "string" &&
@@ -24,7 +26,27 @@ export function NativeImage({
     );
   return (
     <figure className="message-image">
-      <img src={`data:${image.mimeType};base64,${image.data}`} alt={label} />
+      {onOpen ? (
+        <button
+          type="button"
+          className="tool-image-trigger"
+          aria-label={`放大图片：${label}`}
+          onClick={(event) => {
+            event.stopPropagation();
+            onOpen(
+              `data:${image.mimeType};base64,${image.data}`,
+              event.currentTarget,
+            );
+          }}
+        >
+          <img
+            src={`data:${image.mimeType};base64,${image.data}`}
+            alt={label}
+          />
+        </button>
+      ) : (
+        <img src={`data:${image.mimeType};base64,${image.data}`} alt={label} />
+      )}
       <figcaption>{label}</figcaption>
     </figure>
   );

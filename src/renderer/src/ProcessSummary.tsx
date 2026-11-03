@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useNow } from "./use-now";
 import { toolStatus } from "./transcript-model";
 import type { ProcessItem } from "./transcript-types";
 import { durationText } from "./duration-text";
@@ -34,13 +34,7 @@ export function ProcessSummary({
     (item) => item.kind === "message" && isAgentMessage(item.message),
   ).length;
   const running = active ?? (statuses.includes("执行中") || thinking);
-  const [now, setNow] = useState(Date.now);
-  useEffect(() => {
-    setNow(Date.now());
-    if (!running) return;
-    const timer = window.setInterval(() => setNow(Date.now()), 1000);
-    return () => window.clearInterval(timer);
-  }, [running, startedAt]);
+  const now = useNow(running);
   return (
     <summary aria-busy={running}>
       <span className={running ? "spinner" : "process-icon"} aria-hidden="true">

@@ -45,7 +45,7 @@ export function activeBranchEntries(
   return branch.reverse();
 }
 
-/** 从原生记录生成展示消息；仅转换消息和摘要，不把模型配置等元数据渲染为正文。 */
+/** 从原生记录生成展示消息与会话事件，隐藏工具开始和模型提及仅供转录证据使用。 */
 export function sessionHistoryMessages(
   snapshot: SessionHistorySnapshot,
 ): AgentMessage[] {
@@ -87,6 +87,36 @@ export function sessionHistoryMessages(
           fromId: entry.fromId,
         },
       ];
+    }
+    if (
+      entry.type === "model_change" ||
+      entry.type === "thinking_level_change" ||
+      entry.type === "mode_change"
+    ) {
+      return [{
+        role: "custom",
+        customType: "ompgui-session-event",
+        display: true,
+        details: {
+          event: entry.type,
+          model: entry.model,
+          thinkingLevel: entry.thinkingLevel,
+          mode: entry.mode,
+        },
+        timestamp: Date.parse(entry.timestamp),
+      }];
+    }
+    if (
+      entry.type === "custom" &&
+      (entry.customType === "tool_execution_start" || entry.customType === "model_mention")
+    ) {
+      return [{
+        role: "custom",
+        customType: entry.customType,
+        display: false,
+        details: entry.data,
+        timestamp: Date.parse(entry.timestamp),
+      }];
     }
     return [];
   });

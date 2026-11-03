@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { ContextActionsMenu, type ContextActionsMenuProps } from "./ContextActionsMenu";
 import { copyRichSelection, richSelectionText } from "./rich-selection";
 import { ThinkingVisibility } from "./ThinkingContent";
@@ -14,6 +14,10 @@ import { PlanStatusCard } from "./PlanStatusCard";
 import { parsePlanStatus } from "./plan-status";
 import { ConversationOutline, outlineEntries } from "./ConversationOutline";
 import { LateResultDivider } from "./TranscriptNotice";
+import { TranscriptActions } from "./tool-cards/actions";
+import { FullMessage } from "./tool-cards/FullMessage";
+import { FileChips } from "./FileChips";
+import { subscribeStreamingPreviews, streamingPreviewRevision } from "./tool-stream-preview";
 import "./inline-tool.css";
 export type { ToolInspection, TranscriptProps } from "./transcript-types";
 export { NativeImage } from "./TranscriptContent";
@@ -31,7 +35,8 @@ function preparePlanCards(messages: TimelineMessage[]) {
   for (let index = 0; index < messages.length; index += 1) {
     const item = messages[index];
     const message = item.message;
-    if (message.display === false) continue;
+    // 隐藏的工具开始记录仍需参与证据配对；transcriptUnits 负责不显示它们。
+    if (message.display === false) { visible.push(item); continue; }
     const isStatus = message.role === "custom" && message.customType === "ompgui-plan-status";
     const record = isStatus ? parsePlanStatus(message) : undefined;
     if (isStatus && !record) continue;
@@ -68,6 +73,7 @@ export function Transcript({
   messages,
   tools,
   sessionId,
+  cwd,
   busy,
   runStart,
   inlineProcess,
@@ -76,6 +82,8 @@ export function Transcript({
   planCardState,
   onPlanCardToggle,
   onOpenPlanSession,
+  mode = "compact",
+  onOpenSubagent,
 }: TranscriptProps) {
   const [showThinking, setShowThinking] = useState(true);
   const [selectionMenu, setSelectionMenu] = useState<ContextActionsMenuProps>();
@@ -103,9 +111,10 @@ export function Transcript({
     window.addEventListener("keydown", toggleThinking);
     return () => window.removeEventListener("keydown", toggleThinking);
   }, []);
+  const previewRevision = useSyncExternalStore(subscribeStreamingPreviews, streamingPreviewRevision);
   const originalUnits = useMemo(
-    () => transcriptUnits(prepared.visible, tools),
-    [prepared, tools],
+    () => transcriptUnits(prepared.visible, tools, mode),
+    [prepared, tools, mode, previewRevision],
   );
   const entries = useMemo(() => outlineEntries(originalUnits), [originalUnits]);
   const targets = useRef(new Map<string, HTMLElement>());
@@ -188,7 +197,7 @@ export function Transcript({
     }
     if ((end === undefined || nextTrigger) && from >= 0) {
       const timestamps = messages.slice(from, until).flatMap(({ message }) =>
-        message.timestamp === undefined ? [] : [message.timestamp],
+        message.display === false || message.timestamp === undefined ? [] : [message.timestamp],
       );
       end = timestamps.length > 1 ? Math.max(...timestamps) : undefined;
     }
@@ -205,6 +214,7 @@ export function Transcript({
   );
   return (
     <MessageFileLinks.Provider value={onOpenFile}>
+      <TranscriptActions.Provider value={{ onOpenSubagent }}>
       <ThinkingVisibility.Provider value={showThinking}>
         {outline && <ConversationOutline entries={entries} targets={targets} />}
         <div className="conversation-review" tabIndex={-1} onCopy={(event) => copyRichSelection(event.nativeEvent, event.currentTarget)} onContextMenuCapture={(event) => {
@@ -233,6 +243,8 @@ export function Transcript({
             />;
             if (unit.kind === "lateDivider")
               return <LateResultDivider key={`${sessionId}:${unit.key}`} arrivedAt={unit.arrivedAt} answeredAt={unit.answeredAt} />;
+            if (mode === "full" && unit.kind === "message" && unit.message.customType === "ompgui-event-divider")
+              return <FullMessage key={`${sessionId}:${unit.key}`} message={unit.message} />;
             const approval = unit.kind === "message"
               ? planApprovalPresentation(unit.message) ?? null
               : null;
@@ -244,6 +256,8 @@ export function Transcript({
                 key={unit.followup ? `${key}:followup:${unit.followup.key}` : `${key}:process:${unit.key === "pending" ? "pending" : "record"}`}
                 items={unit.items}
                 sessionId={sessionId}
+                cwd={cwd}
+                layout={mode === "full" ? "cards" : undefined}
                 inline={inlineProcess}
                 followup={!!unit.followup}
                 active={
@@ -257,56 +271,59 @@ export function Transcript({
                 endedAt={end}
               />
             ) : (
-              <article
-                key={`${sessionId}:${unit.key}`}
-                ref={
-                  (outline && unit.message.role === "user") || unit.segment === "trigger"
-                    ? (element) => {
-                        if (element) targets.current.set(unit.key, element);
-                        else targets.current.delete(unit.key);
-                      }
-                    : undefined
-                }
-                className={`conversation-message conversation-${unit.message.role}${unit.segment === "trigger" ? " conversation-late-trigger" : unit.segment === "followup" ? " conversation-followup" : ""}`}
-                data-late-trigger={unit.segment === "trigger" ? unit.key : undefined}
-                aria-label={
-                  approvalLabel ?? roleLabels[unit.message.role] ??
-                  `原生消息 ${unit.message.role}`
-                }
-              >
-                <div className="conversation-heading">
-                  {unit.message.role !== "assistant" &&
-                    unit.segment !== "trigger" &&
-                    unit.message.role !== "compactionSummary" &&
-                    unit.message.display !== false &&
-                    unit.message.role !== "user" && (
-                      <strong>
-                        {approvalLabel ?? roleLabels[unit.message.role] ?? unit.message.role}
-                      </strong>
+              <Fragment key={`${sessionId}:${unit.key}`}>
+                <article
+                  ref={
+                    (outline && unit.message.role === "user") || unit.segment === "trigger"
+                      ? (element) => {
+                          if (element) targets.current.set(unit.key, element);
+                          else targets.current.delete(unit.key);
+                        }
+                      : undefined
+                  }
+                  className={`conversation-message conversation-${unit.message.role}${unit.segment === "trigger" ? " conversation-late-trigger" : unit.segment === "followup" ? " conversation-followup" : ""}`}
+                  data-late-trigger={unit.segment === "trigger" ? unit.key : undefined}
+                  aria-label={
+                    approvalLabel ?? roleLabels[unit.message.role] ??
+                    `原生消息 ${unit.message.role}`
+                  }
+                >
+                  <div className="conversation-heading">
+                    {unit.message.role !== "assistant" &&
+                      unit.segment !== "trigger" &&
+                      unit.message.role !== "compactionSummary" &&
+                      unit.message.display !== false &&
+                      unit.message.role !== "user" && (
+                        <strong>
+                          {approvalLabel ?? roleLabels[unit.message.role] ?? unit.message.role}
+                        </strong>
+                      )}
+                    {unit.segment === "followup" && unit.followup && (
+                      <button
+                        type="button"
+                        className="followup-tag"
+                        onClick={() => {
+                          const target = targets.current.get(unit.followup!.key);
+                          target?.scrollIntoView({ block: "center" });
+                          target?.classList.add("flash");
+                          window.setTimeout(() => target?.classList.remove("flash"), 1200);
+                        }}
+                      >
+                        后续回复{unit.followup.title ? ` ↩ ${unit.followup.title}` : ""}
+                      </button>
                     )}
-                  {unit.segment === "followup" && unit.followup && (
-                    <button
-                      type="button"
-                      className="followup-tag"
-                      onClick={() => {
-                        const target = targets.current.get(unit.followup!.key);
-                        target?.scrollIntoView({ block: "center" });
-                        target?.classList.add("flash");
-                        window.setTimeout(() => target?.classList.remove("flash"), 1200);
-                      }}
-                    >
-                      后续回复{unit.followup.title ? ` ↩ ${unit.followup.title}` : ""}
-                    </button>
-                  )}
-                  {unit.streaming && <span className="live-label">生成中</span>}
-                </div>
-                <MessageBody message={unit.message} planApproval={approval} />
-              </article>
+                    {unit.streaming && <span className="live-label">生成中</span>}
+                  </div>
+                  {mode === "full" ? <FullMessage message={unit.message} /> : <MessageBody message={unit.message} planApproval={approval} />}
+                </article>
+                {unit.message.role === "user" && <FileChips mentions={unit.mentions} modelMentions={unit.modelMentions} />}
+              </Fragment>
             );
           })}
         </div>
         {selectionMenu && <ContextActionsMenu {...selectionMenu} />}
       </ThinkingVisibility.Provider>
+      </TranscriptActions.Provider>
     </MessageFileLinks.Provider>
   );
 }

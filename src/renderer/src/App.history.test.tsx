@@ -60,18 +60,19 @@ it("会话以原始用户提示开头，压缩摘要不再替代早期聊天", a
   );
   const conversation = app.container.querySelector(".conversation-review")!;
   expect(
-    [...conversation.children]
-      .filter((node) => !node.classList.contains("process-group"))
-      .map((node) => node.textContent),
+    [...conversation.querySelectorAll(":scope > .conversation-message")].map(
+      (node) => node.textContent,
+    ),
   ).toEqual(["最初提示", "回答1", "后续提示", "回答2"]);
+  expect(conversation.textContent).not.toContain("旁支提示");
   expect(app.commands).toContain("get_entries");
   expect(app.commands).not.toContain("get_messages_page");
   const compact =
-    conversation.querySelector<HTMLDetailsElement>(".compaction-notice")!;
-  const process = compact.closest<HTMLDetailsElement>(".process-group")!;
-  expect(process).not.toBeNull();
-  await app.click(process.querySelector("summary")!);
+    conversation.querySelector<HTMLDetailsElement>(".event-divider")!;
+  expect(compact.textContent).toContain("压缩摘要");
   expect(compact.open).toBe(false);
   await app.click(compact.querySelector("summary")!);
   expect(compact.open).toBe(true);
+  await app.click(compact.querySelector("summary")!);
+  expect(compact.open).toBe(false);
 });

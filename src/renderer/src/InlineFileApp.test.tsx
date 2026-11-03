@@ -3,7 +3,7 @@ import { expect, it } from "vitest";
 import { createAppFixture } from "./inline-app-test-fixture";
 import { toolCall } from "./inline-transcript-test-helpers";
 
-/** 验证真实 App 中点击文件名和工具行都仅展示原生读取结果。参数：无。返回值：测试完成 Promise。 */
+/** 验证真实 App 中展开工具卡片仅展示原生读取结果。参数：无。返回值：测试完成 Promise。 */
 async function nativeReadInline() {
   const content =
     '[ui]\r\ntheme = "light"\r\n# [literal](https://example.test)\r\n';
@@ -16,25 +16,24 @@ async function nativeReadInline() {
     },
   ]);
   const before = [...app.commands];
-  const row = app.container.querySelector<HTMLDetailsElement>(
-    '.tool-row[data-tool-id="config"]',
+  const card = app.container.querySelector<HTMLElement>(
+    '[data-tool-id="config"]',
   )!;
-  const target = app.container.querySelector<HTMLButtonElement>(
-    '.tool-row[data-tool-id="config"] > summary button[data-tool-id="config"]',
+  const toggle = card.querySelector<HTMLElement>(
+    '[role="button"][aria-expanded]',
   )!;
-  expect(target.textContent).toBe("config.toml");
-  expect(row.open).toBe(false);
-  await app.click(
-    app.container.querySelector<HTMLElement>(".process-group > summary")!,
-  );
-  await app.click(target);
-  expect(row.open).toBe(true);
-  expect(row.querySelector(".file-review-source")?.textContent).toBe(content);
-  expect(row.querySelector("a")).toBeNull();
-  await app.click(row.querySelector<HTMLElement>("summary")!);
-  expect(row.open).toBe(false);
-  await app.click(row.querySelector<HTMLElement>("summary")!);
-  expect(row.querySelector(".file-review-source")?.textContent).toBe(content);
+  expect(toggle.getAttribute("aria-expanded")).toBe("false");
+  expect(card.querySelector(".file-review-source")).toBeNull();
+  await app.click(toggle);
+  expect(toggle.getAttribute("aria-expanded")).toBe("true");
+  expect(card.querySelector(".file-review-source")?.textContent).toBe(content);
+  expect(card.querySelector("a")).toBeNull();
+  await app.click(toggle);
+  expect(toggle.getAttribute("aria-expanded")).toBe("false");
+  expect(card.querySelector(".file-review-source")).toBeNull();
+  await app.click(toggle);
+  expect(toggle.getAttribute("aria-expanded")).toBe("true");
+  expect(card.querySelector(".file-review-source")?.textContent).toBe(content);
   expect(app.previewToolFile).not.toHaveBeenCalled();
   expect(app.commands).toEqual(before);
   expect(
@@ -50,6 +49,6 @@ async function nativeReadInline() {
     expect(app.container.textContent).not.toContain(label);
 }
 it(
-  "App 点击 config.toml 文件名和行摘要均内嵌原生内容，不读磁盘或发送 RPC",
+  "App 展开、收起和重新展开读取卡片均内嵌原生内容，不读磁盘或发送 RPC",
   nativeReadInline,
 );

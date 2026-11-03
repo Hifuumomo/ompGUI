@@ -1,5 +1,4 @@
 import {
-  useEffect,
   useRef,
   useState,
   type KeyboardEvent,
@@ -20,9 +19,12 @@ import { InlineToolDetails } from "./InlineToolDetails";
 import { InlineFileDetails } from "./InlineFileDetails";
 import { ToolTargetButton, ToolTargets } from "./TranscriptToolTargets";
 import { ToolIcon } from "./ToolIcon";
+import { useStickyMeasure } from "./use-sticky-measure";
 
 export interface ProcessContext {
   sessionId: string;
+  /** 当前项目目录，只影响展示，不扩大文件授权范围。 */
+  cwd?: string;
   expanded: Readonly<Record<string, number>>;
   toggle: (toolId: string, index: number) => void;
   panelId: (toolId: string) => string;
@@ -85,26 +87,12 @@ export function ToolRow({
   const open = multiple ? listOpen : index !== undefined;
   const detailsRef = useRef<HTMLDetailsElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
-  const [long, setLong] = useState(false);
-  const sticky = open && long;
+  const { sticky, measure } = useStickyMeasure(panelRef, open);
   function toggle(event: MouseEvent<HTMLElement>) {
     event.preventDefault();
     if (multiple) setListOpen((current) => !current);
     else context.toggle(tool.id, index ?? 0);
   }
-  /** 详情内容较长（已展开全部，或高度超过视口一半）时标题吸顶。 */
-  function measure() {
-    const panel = panelRef.current;
-    if (!panel) return;
-    setLong(
-      !!panel.querySelector('[data-expanded="true"], [data-output-expanded="true"]') ||
-        panel.offsetHeight > window.innerHeight / 2,
-    );
-  }
-  useEffect(() => {
-    if (open) measure();
-    else setLong(false);
-  }, [open]);
   /** 收起当前详情，并把工具行滚回最近的可见位置；focus 为真时焦点回到 summary。 */
   function collapse(focus: boolean) {
     const shown = context.expanded[tool.id];
@@ -289,7 +277,8 @@ function targetKey(target: ToolTarget): string {
   return `query:${target.text}`;
 }
 
-function ToolRowBody({
+/** 复用工具目标对应的文件或命令详情。参数：[in] tool 工具证据，[in] target 目标，[in] context 过程上下文。返回值：详情内容。 */
+export function ToolRowBody({
   tool,
   target,
   context,

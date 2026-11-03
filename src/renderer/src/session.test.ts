@@ -1,6 +1,6 @@
 // @vitest-environment node
 // 原生帧契约：https://github.com/can1357/oh-my-pi/blob/v18.8.9/docs/rpc.md（Events / Side questions / Transport）。
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import type {
   AgentMessage,
   BtwRecord,
@@ -404,5 +404,93 @@ function sessionTransitions() {
     logErrorTransitions,
   );
 }
+
+it("工具开始时间只记录一次，更新和结束保留参数与开始时间且不增加消息", () => {
+  const now = vi.spyOn(Date, "now");
+  try {
+    now.mockReturnValue(1_000);
+    let view = applyFrames(initialSession, {
+      type: "tool_execution_start", toolCallId: "read-1", toolName: "read", args: { path: "README.md" },
+    });
+    expect(view.tools[0]).toMatchObject({ startedAt: 1_000, running: true });
+    now.mockReturnValue(1_100);
+    view = applyFrames(view, { type: "tool_execution_start", toolCallId: "read-1" });
+    now.mockReturnValue(1_500);
+    view = applyFrames(view, { type: "tool_execution_update", toolCallId: "read-1", partialResult: "正文" });
+    expect(view.tools[0]).toMatchObject({ startedAt: 1_000, result: "正文", running: true });
+    expect(view.tools[0].endedAt).toBeUndefined();
+    now.mockReturnValue(2_000);
+    view = applyFrames(view, { type: "tool_execution_end", toolCallId: "read-1", result: "完整正文" });
+    expect(view.tools[0]).toMatchObject({
+      id: "read-1", name: "read", args: { path: "README.md" },
+      startedAt: 1_000, endedAt: 2_000, result: "完整正文", running: false,
+    });
+    expect(view.messages).toEqual([]);
+  } finally {
+    now.mockRestore();
+  }
+});
+
+it("缺少开始帧的工具结束记录仅保留真实结束时间", () => {
+  const now = vi.spyOn(Date, "now").mockReturnValue(2_000);
+  try {
+    const view = applyFrames(initialSession, { type: "tool_execution_end", toolCallId: "end-only" });
+    expect(view.tools[0].startedAt).toBeUndefined();
+    expect(view.tools[0].endedAt).toBe(2_000);
+    expect(view.tools[0].running).toBe(false);
+  } finally {
+    now.mockRestore();
+  }
+});
+
+it("实时模型和思考事件保留正文顺序，模型对象转为 provider/id 选择器", () => {
+  const now = vi.spyOn(Date, "now").mockReturnValue(5_000);
+  try {
+    const view = applyFrames(
+      initialSession,
+      { type: "message_end", messageId: "u", message: { role: "user", content: "继续" } },
+      { type: "model_changed", model: { provider: "openai-codex", id: "gpt-6.1-sol", name: "Sol" } },
+      { type: "thinking_level_changed", thinkingLevel: "high" },
+      { type: "message_end", messageId: "a", message: { role: "assistant", content: "已继续" } },
+    );
+    expect(view.messages.map((item) => item.key)).toEqual(["u", "event:model_changed:0", "event:thinking_level_changed:1", "a"]);
+    expect(view.messages[1]).toMatchObject({
+      streaming: false,
+      message: { role: "custom", customType: "ompgui-session-event", display: true, timestamp: 5_000, details: { event: "model_change", model: "openai-codex/gpt-6.1-sol" } },
+    });
+    expect(view.messages[2].message.details).toEqual({ event: "thinking_level_change", thinkingLevel: "high" });
+    expect(view.messages[0].message.content).toBe("继续");
+    expect(view.messages[3].message.content).toBe("已继续");
+    expect(view.revision).toBe(2);
+  } finally {
+    now.mockRestore();
+  }
+});
+
+it("实时事件容忍缺字段，模型字符串不改变，普通配置更新不伪造消息", () => {
+  const view = applyFrames(
+    initialSession,
+    { type: "model_changed", model: "provider/model" },
+    { type: "model_changed", model: { name: "无 ID" } },
+    { type: "thinking_level_changed" },
+    { type: "session_info_update" },
+    { type: "config_update" },
+  );
+  expect(view.messages).toHaveLength(1);
+  expect(view.messages[0].message.details).toEqual({ event: "model_change", model: "provider/model" });
+  expect(view.revision).toBe(5);
+  const notified = applyFrames(view, { type: "model_changed" });
+  expect(notified.messages).toBe(view.messages);
+  expect(notified.revision).toBe(6);
+  const restored = sessionReducer(notified, {
+    type: "history",
+    state: { sessionId: "session", isStreaming: false, isCompacting: false, messageCount: 1, queuedMessageCount: 0 },
+    messages: [{
+      role: "custom", customType: "ompgui-session-event", display: true,
+      details: { event: "model_change", model: "provider/new-model" }, timestamp: 6_000,
+    }],
+  });
+  expect(restored.messages[0].message.details).toEqual({ event: "model_change", model: "provider/new-model" });
+});
 
 describe("原生会话状态迁移", sessionTransitions);

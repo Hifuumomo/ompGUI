@@ -3650,6 +3650,9 @@ export default function App() {
                 )}
                 <MessageFileMenu.Provider value={openFileMenu}>
                   <Transcript
+                    mode="full"
+                    cwd={launch.cwd}
+                    onOpenSubagent={() => setModal("agent-activity")}
                     key={`${view.state?.sessionId}:${transcriptEpoch}`}
                     messages={view.messages}
                     tools={view.tools}

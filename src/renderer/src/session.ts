@@ -30,6 +30,8 @@ export interface ToolActivity {
   result?: unknown;
   error?: boolean;
   running: boolean;
+  startedAt?: number; // 首次收到工具开始帧的本地时间（毫秒）。
+  endedAt?: number; // 收到工具结束帧的本地时间（毫秒）。
 }
 
 export interface SessionView {
@@ -147,6 +149,17 @@ export function readable(value: unknown): string {
   return typeof value === "string"
     ? value
     : (JSON.stringify(value, null, 2) ?? "");
+}
+
+/** 将原生模型字符串或模型对象转为可读选择器，不显示对象的默认字符串。 */
+function eventModelName(value: unknown): string | undefined {
+  if (typeof value === "string") return value;
+  if (!value || typeof value !== "object") return;
+  const model = value as Record<string, unknown>;
+  if (typeof model.id !== "string") return;
+  return typeof model.provider === "string" && model.provider
+    ? `${model.provider}/${model.id}`
+    : model.id;
 }
 
 /** 为消息建立稳定标识。[in] message：原生消息；[in] index：历史位置。返回值：界面键值。 */
@@ -385,7 +398,37 @@ export function sessionReducer(
     case "available_commands_update":
       return { ...view, commands: (frame.commands ?? []) as SlashCommand[] };
     case "model_changed":
-    case "thinking_level_changed":
+    case "thinking_level_changed": {
+      const event = frame.type === "model_changed"
+        ? "model_change"
+        : "thinking_level_change";
+      const model = eventModelName(frame.model);
+      // 原生 model_changed 可以只有通知；由 revision 触发的历史刷新恢复真实事件。
+      if (
+        (frame.type === "model_changed" && !model) ||
+        (frame.type === "thinking_level_changed" && typeof frame.thinkingLevel !== "string")
+      ) return { ...view, revision: view.revision + 1 };
+      return {
+        ...view,
+        messages: [...view.messages, {
+          key: `event:${frame.type}:${view.revision}`,
+          streaming: false,
+          message: {
+            role: "custom",
+            customType: "ompgui-session-event",
+            display: true,
+            details: {
+              event,
+              model,
+              thinkingLevel: frame.thinkingLevel,
+              mode: undefined,
+            },
+            timestamp: Date.now(),
+          },
+        }],
+        revision: view.revision + 1,
+      };
+    }
     case "session_info_update":
     case "config_update":
       return { ...view, revision: view.revision + 1 };
@@ -413,6 +456,12 @@ export function sessionReducer(
             : previous?.result),
         error: Boolean(frame.isError),
         running: frame.type !== "tool_execution_end",
+        startedAt: frame.type === "tool_execution_start"
+          ? (previous?.startedAt ?? Date.now())
+          : previous?.startedAt,
+        endedAt: frame.type === "tool_execution_end"
+          ? Date.now()
+          : previous?.endedAt,
       };
       return {
         ...view,
