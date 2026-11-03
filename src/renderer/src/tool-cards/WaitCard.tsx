@@ -57,7 +57,6 @@ export function WaitCard({
     <CardFrame
       toolId={tool.id}
       kind="wait"
-      plainHeader
       status={status}
       title={
         <>

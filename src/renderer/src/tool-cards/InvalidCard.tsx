@@ -27,7 +27,6 @@ export function InvalidCard({
       kind="invalid"
       status={status}
       tone="danger"
-      plainHeader
       title={<strong>✗ 参数无效 · {tool.name}</strong>}
       statusText=""
       durationMs={toolDurationMs(tool, now)}

@@ -42,8 +42,8 @@ it("MCP 使用原生身份、参数与结果字符数并可展开收起", async 
   expect(container.textContent).toContain(`结果 ${result.length} 字符`);
   expect(container.querySelector("pre")).toBeNull();
   expect(
-    container.querySelector(".tool-card")?.getAttribute("data-plain-header"),
-  ).toBe("true");
+    container.querySelector(".tool-card")?.getAttribute("data-variant"),
+  ).toBe("tool");
   const header = container.querySelector<HTMLElement>(
     '[role="button"][aria-expanded]',
   )!;

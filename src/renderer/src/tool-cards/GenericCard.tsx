@@ -37,7 +37,7 @@ export function GenericCard({
         </>
       }
       statusText={
-        status === "running" && tool.streamingArgs ? "◐ 生成中" : undefined
+        status === "running" && tool.streamingArgs ? "生成中" : undefined
       }
       durationMs={toolDurationMs(tool, now)}
       expand={{ expanded, onToggle: () => context.toggle(tool.id, 0) }}

@@ -234,7 +234,7 @@ it("keeps the group sticky and collapses only the focused expanded row on Escape
   const group = container.querySelector<HTMLElement>(
     `[data-tool-id="readonly:${localRead.id}"]`,
   )!;
-  const body = group.querySelector<HTMLElement>(":scope > .tool-card-body")!;
+  const body = group.querySelector<HTMLElement>(".tool-card-body")!;
   Object.defineProperty(body, "offsetHeight", {
     configurable: true,
     value: window.innerHeight,
@@ -244,7 +244,7 @@ it("keeps the group sticky and collapses only the focused expanded row on Escape
   expect(group.dataset.expanded).toBe("true");
   expect(group.dataset.sticky).toBe("true");
   expect(
-    group.querySelector(":scope > header")?.getAttribute("role"),
+    group.querySelector(":scope > .tool-card-box > header")?.getAttribute("role"),
   ).toBeNull();
   const focusedTarget = rows[1].querySelector<HTMLElement>("button")!;
   focusedTarget.focus();
@@ -362,5 +362,6 @@ it("keeps two collapsed targets compact and places their count beside the title"
   );
   expect(header.querySelector(".tool-card-meta")).toBeNull();
   expect(header.querySelector(".tool-card-duration")).toBeNull();
-  expect(header.querySelector(".tool-card-status")).not.toBeNull();
+  expect(header.querySelector(".tool-card-icon")?.textContent).toBe("✓");
+  expect(header.querySelector(".tool-card-status")).toBeNull();
 });

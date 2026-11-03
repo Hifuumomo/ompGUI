@@ -292,7 +292,6 @@ export function ReadOnlyCard({
     <CardFrame
       toolId={`readonly:${items[0]?.tool.id ?? "empty"}`}
       kind="readonly"
-      plainHeader
       status={status}
       stickyExpanded={items.some(
         ({ tool }) => context.expanded[tool.id] !== undefined,

@@ -387,11 +387,11 @@ it("uses bashExecution output and stops the completed live timer", async () => {
     };
     await render(<BashCard tool={evidence} context={context} />);
     expect(container.querySelector(".tool-card-duration")?.textContent).toBe(
-      "1秒",
+      "(1秒)",
     );
     await act(() => vi.advanceTimersByTime(2000));
     expect(container.querySelector(".tool-card-duration")?.textContent).toBe(
-      "3秒",
+      "(3秒)",
     );
     const finished = {
       ...evidence,
@@ -400,7 +400,7 @@ it("uses bashExecution output and stops the completed live timer", async () => {
     await render(<BashCard tool={finished} context={context} />);
     await act(() => vi.advanceTimersByTime(4000));
     expect(container.querySelector(".tool-card-duration")?.textContent).toBe(
-      "3秒",
+      "(3秒)",
     );
     await render(
       <BashCard

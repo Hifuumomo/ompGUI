@@ -316,7 +316,6 @@ export function ProcessCard({
       kind="process"
       status={error ? "error" : status}
       tone={error ? "danger" : "default"}
-      plainHeader={op !== "logs" && op !== "read"}
       title={title}
       statusText={statusText}
       durationMs={toolDurationMs(tool, now)}

@@ -60,27 +60,49 @@ export function ToolResultImages({ result }: { result: unknown }) {
   ) : null;
 }
 
-const statusLabels: Record<CardStatus, string> = {
-  running: "◐ 运行中",
+export type CardVariant = "tool" | "command";
+export type CardTone = "default" | "danger" | "warn";
+
+/** 各状态的默认图标；无图标的状态为 undefined。 */
+const statusIcons: Record<CardStatus, string | undefined> = {
+  running: "◐",
   ok: "✓",
-  error: "✗ 失败",
+  error: "✗",
+  cancelled: undefined,
+  unknown: undefined,
+};
+
+/** 各状态的默认状态文字，不含图标。 */
+const statusTexts: Record<CardStatus, string | undefined> = {
+  running: "运行中",
+  ok: undefined,
+  error: undefined,
   cancelled: "已取消",
   unknown: "未记录结果",
 };
 
-/** 工具框外壳；参数：[in] props 标题、状态、耗时、展开操作及正文。返回值：支持键盘和吸顶的工具框。 */
+/** 判断可选节点是否有可渲染内容；参数：[in] node 节点。返回值：非空、非 false、非空串时为 true。 */
+function hasNode(node: ReactNode): boolean {
+  return node != null && node !== false && node !== "";
+}
+
+/** 工具框外壳；参数：[in] props 标题、状态、耗时、展开操作、输入区、Output 区和底部信息。返回值：嵌入式边框、支持键盘和吸顶的工具框。 */
 export function CardFrame({
   toolId,
   kind,
   status,
+  variant = "tool",
   tone = "default",
-  plainHeader,
+  icon,
   title,
   meta,
   statusText,
   durationMs,
+  aside,
   expand,
   stickyExpanded,
+  output,
+  outputLabel,
   footer,
   children,
   result,
@@ -88,16 +110,27 @@ export function CardFrame({
   toolId: string;
   kind: CardKind;
   status: CardStatus;
-  tone?: "default" | "danger";
-  plainHeader?: boolean;
+  variant?: CardVariant;
+  tone?: CardTone;
+  /** 覆盖默认图标；null 表示不显示。 */
+  icon?: ReactNode | null;
   title: ReactNode;
   meta?: ReactNode;
+  /** 状态文字，不得包含图标字符；空串表示不显示。 */
   statusText?: ReactNode;
+  /** 只在 variant="tool" 时显示于标题末尾。 */
   durationMs?: number;
+  /** 顶部边框右端，只在 variant="tool" 时显示。 */
+  aside?: ReactNode;
   expand?: { expanded: boolean; onToggle: () => void };
   /** 子行独立展开时只启用测量，不赋予整框标题切换操作。 */
   stickyExpanded?: boolean;
+  /** Output 分隔线下方的结果区。 */
+  output?: ReactNode;
+  outputLabel?: ReactNode;
+  /** 底部边框文字。 */
   footer?: ReactNode;
+  /** 输入区。 */
   children?: ReactNode;
   result?: unknown;
 }) {
@@ -152,48 +185,101 @@ export function CardFrame({
       header.current?.scrollIntoView?.({ block: "nearest" }),
     );
   }
+  const command = variant === "command";
+  const resolvedIcon = icon !== undefined ? icon : statusIcons[status];
+  const iconNode = hasNode(resolvedIcon) ? (
+    <span className="tool-card-icon">{resolvedIcon}</span>
+  ) : null;
+  const resolvedStatusText = statusText ?? statusTexts[status];
+  const hasInput = hasNode(children);
+  const hasOutput = hasNode(output);
+  const images = <ToolResultImages result={imageResult} />;
+  // 图片放在最后一个区域末尾；只有图片时放进输入区。
+  const inputShown = hasInput || (hasImages && !hasOutput);
+  const showBody = inputShown || hasOutput;
+  const showDivider = hasOutput && (command || inputShown);
+  const footerShown = command
+    ? hasNode(footer) || iconNode !== null
+    : hasNode(footer);
   return (
     <section
       className="tool-card"
+      data-variant={variant}
       data-tool-id={toolId}
       data-kind={kind}
       data-status={status}
       data-tone={tone}
       data-sticky={sticky}
       data-expanded={stickyExpanded ?? expand?.expanded}
-      data-plain-header={!!plainHeader}
       onKeyDown={onCardKey}
     >
-      <header
-        ref={header}
-        className="tool-card-header"
-        role={expand ? "button" : undefined}
-        tabIndex={expand ? 0 : undefined}
-        aria-expanded={expand?.expanded}
-        onClick={expand ? onClick : undefined}
-        onKeyDown={expand ? onHeaderKey : undefined}
-      >
-        <span className="tool-card-title">{title}</span>
-        {meta != null && <span className="tool-card-meta">{meta}</span>}
-        <span className="tool-card-status">
-          {statusText ?? statusLabels[status]}
-        </span>
-        {durationMs !== undefined && (
-          <span className="tool-card-duration">{durationText(durationMs)}</span>
-        )}
-      </header>
-      {(children != null || hasImages) && (
-        <div
-          ref={panel}
-          className="tool-card-body"
-          tabIndex={expand?.expanded ? 0 : undefined}
-          onClickCapture={() => setTimeout(measure, 0)}
+      <div className="tool-card-box" data-has-result={hasOutput}>
+        <header
+          ref={header}
+          className="tool-card-header"
+          role={expand ? "button" : undefined}
+          tabIndex={expand ? 0 : undefined}
+          aria-expanded={expand?.expanded}
+          onClick={expand ? onClick : undefined}
+          onKeyDown={expand ? onHeaderKey : undefined}
         >
-          {children}
-          <ToolResultImages result={imageResult} />
-        </div>
-      )}
-      {footer != null && <footer className="tool-card-footer">{footer}</footer>}
+          {command ? (
+            <span className="tool-card-title">{title}</span>
+          ) : (
+            <>
+              <span className="tool-card-legend">
+                {iconNode}
+                <span className="tool-card-title">{title}</span>
+                {hasNode(meta) && <span className="tool-card-meta">{meta}</span>}
+                {hasNode(resolvedStatusText) && (
+                  <span className="tool-card-status">{resolvedStatusText}</span>
+                )}
+                {durationMs !== undefined && (
+                  <span className="tool-card-duration">
+                    ({durationText(durationMs)})
+                  </span>
+                )}
+              </span>
+              {hasNode(aside) && <span className="tool-card-aside">{aside}</span>}
+            </>
+          )}
+        </header>
+        {showBody && (
+          <div
+            ref={panel}
+            className="tool-card-body"
+            tabIndex={expand?.expanded ? 0 : undefined}
+            onClickCapture={() => setTimeout(measure, 0)}
+          >
+            {inputShown && (
+              <div className="tool-card-input">
+                {children}
+                {!hasOutput && images}
+              </div>
+            )}
+            {showDivider && (
+              <div className="tool-card-divider">
+                <span>{outputLabel ?? "Output"}</span>
+              </div>
+            )}
+            {hasOutput && (
+              <div className="tool-card-result">
+                {output}
+                {images}
+              </div>
+            )}
+          </div>
+        )}
+        {footerShown && (
+          <footer className="tool-card-footer">
+            <span>
+              {command && iconNode}
+              {command && iconNode && hasNode(footer) ? " " : null}
+              {footer}
+            </span>
+          </footer>
+        )}
+      </div>
     </section>
   );
 }

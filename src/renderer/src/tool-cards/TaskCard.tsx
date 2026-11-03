@@ -67,7 +67,6 @@ export function TaskCard({
     <CardFrame
       toolId={tool.id}
       kind="task"
-      plainHeader
       status={status}
       title={
         <>

@@ -47,7 +47,6 @@ export function McpCard({
       toolId={tool.id}
       kind="mcp"
       status={status}
-      plainHeader
       title={
         <>
           <strong>调用 MCP</strong>{" "}

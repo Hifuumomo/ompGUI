@@ -63,7 +63,6 @@ export function AgentOutputCard({
         </>
       }
       meta={`${details.totalLines} 行`}
-      plainHeader
       durationMs={toolDurationMs(tool, now)}
       expand={{ expanded, onToggle: () => context.toggle(tool.id, 0) }}
       footer={
