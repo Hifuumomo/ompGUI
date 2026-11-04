@@ -50,10 +50,9 @@ export function DeleteCard({
       toolId={tool.id}
       kind="delete"
       status={status}
-      tone="danger"
       title={
         <>
-          <strong>删除</strong>{" "}
+          <strong className="tool-card-danger-text">删除</strong>{" "}
           <FileReferenceLink href={messageFileHref(details.path)}>
             {relativeLabel(details.path, context.cwd)}
           </FileReferenceLink>
@@ -61,7 +60,9 @@ export function DeleteCard({
       }
       meta={
         total !== undefined ? (
-          <span className="tool-card-stat-del">−{total} 行</span>
+          <span className="tool-card-stat-del tool-card-danger-text">
+            −{total} 行
+          </span>
         ) : undefined
       }
       durationMs={toolDurationMs(tool, now)}

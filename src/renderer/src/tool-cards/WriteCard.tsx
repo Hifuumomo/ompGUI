@@ -88,19 +88,27 @@ export function WriteCard({
       }
       meta={`${total} 行`}
       statusText={
-        pending ? "◐ 生成中" : status === "running" ? "◐ 应用中" : undefined
+        pending ? "生成中" : status === "running" ? "应用中" : undefined
       }
       durationMs={toolDurationMs(tool, now)}
       expand={{ expanded, onToggle: () => context.toggle(tool.id, 0) }}
       footer={
-        <>
-          {local && <>Markdown 渲染{!expanded ? " · 前 12 行" : ""}</>}
-          {total > 12 && !expanded && (
-            <button onClick={() => context.toggle(tool.id, 0)}>
-              展开全部（共 {total} 行）
-            </button>
-          )}
-        </>
+        local || (total > 12 && !expanded) ? (
+          <>
+            {local && <>Markdown{!expanded ? " · 前 12 行" : ""}</>}
+            {total > 12 && !expanded && (
+              <>
+                {local ? " · " : "前 12 行 · "}共 {total} 行 ·{" "}
+                <button
+                  type="button"
+                  onClick={() => context.toggle(tool.id, 0)}
+                >
+                  展开全部
+                </button>
+              </>
+            )}
+          </>
+        ) : undefined
       }
     >
       {pending ? (

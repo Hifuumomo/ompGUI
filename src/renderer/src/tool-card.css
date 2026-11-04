@@ -885,11 +885,27 @@ button.agent-message-peer {
 .tool-card-title > a,
 .tool-card-title .file-reference-link {
   min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   font: 12.5px var(--font-mono);
-  overflow-wrap: anywhere;
 }
 .tool-card-meta {
   display: inline-flex;
   gap: 6px;
   align-items: baseline;
+}
+
+/* 删除框：红字而不是红边框。 */
+.tool-card-danger-text {
+  color: var(--danger);
+}
+/* 失败编辑的输入区：参数名标签和旧文本前 3 行。 */
+.tool-card-code-label {
+  font: 12px var(--font-mono);
+}
+.tool-card-old-text {
+  margin: 2px 0 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
 }

@@ -162,10 +162,41 @@ it("无 diff 回退既有文件证据，失败直接显示原文和错误种类"
   await render(<Example evidence={editFailed} />);
   expect(container.textContent).toContain("old_string 在文件中出现 0 次");
   expect(container.textContent).toContain("errorKind: no_match");
-  expect(container.textContent).toContain("未改动文件");
-  expect(container.querySelector(".tool-card")?.getAttribute("data-tone")).toBe(
-    "danger",
+  expect(
+    container.querySelector(".tool-card-result")?.textContent,
+  ).toContain("文件未改动");
+  expect(container.querySelector(".tool-card")?.getAttribute("data-status")).toBe(
+    "error",
   );
+  // 有旧文本参数：输入区显示参数名和旧文本，Output 区是错误原文。
+  expect(container.querySelector(".tool-card-input")?.textContent).toContain(
+    "old_string",
+  );
+  expect(container.querySelector(".tool-card-input")?.textContent).toContain("x");
+  expect(container.querySelector(".tool-card-divider")?.textContent).toBe(
+    "Output",
+  );
+  expect(container.querySelector(".tool-card-footer")).toBeNull();
+  // 没有旧文本参数：不渲染输入区，也就没有分隔线。
+  await render(
+    <Example
+      evidence={{
+        ...editFailed,
+        args: { path: "src/main/rpc.ts" },
+      }}
+    />,
+  );
+  expect(container.querySelector(".tool-card-input")).toBeNull();
+  expect(container.querySelector(".tool-card-divider")).toBeNull();
+  expect(container.querySelector(".tool-card-result")?.textContent).toContain(
+    "old_string 在文件中出现 0 次",
+  );
+});
+
+/** 未截断的编辑框没有底部信息。 */
+it("未截断的编辑框不渲染底部边框", async () => {
+  await render(<Example evidence={editOk} />);
+  expect(container.querySelector(".tool-card-footer")).toBeNull();
 });
 
 /** 移动仅从完整补丁读取，不改变链接授权。 */
@@ -225,7 +256,9 @@ it("普通写入默认十二行，空文件为零行，本地笔记渲染 Markdo
   await render(<Example kind="write" evidence={localWrite} />);
   expect(container.textContent).toContain("会话笔记");
   expect(container.querySelector(".rich-content")).not.toBeNull();
-  expect(container.textContent).toContain("Markdown 渲染");
+  expect(container.querySelector(".tool-card-footer")?.textContent).toContain(
+    "Markdown",
+  );
 });
 
 /** 删除只消费结果旧正文，显示相对路径且默认六行。 */

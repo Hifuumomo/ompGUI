@@ -146,6 +146,42 @@ function DiffRows({
   );
 }
 
+/** 取失败编辑的旧文本参数，依次尝试 old_string、old_text、edits[0].old_text 和补丁中的首段 - 行。参数：[in] args 完整参数。返回值：实际参数名与旧文本，取不到时为 undefined。 */
+function failedOldText(
+  args: Record<string, unknown>,
+): { name: string; text: string } | undefined {
+  for (const name of ["old_string", "old_text"]) {
+    const value = args[name];
+    if (typeof value === "string" && value) return { name, text: value };
+  }
+  const first = Array.isArray(args.edits) ? args.edits[0] : undefined;
+  const nested =
+    first && typeof first === "object"
+      ? (first as Record<string, unknown>).old_text
+      : undefined;
+  if (typeof nested === "string" && nested)
+    return { name: "old_text", text: nested };
+  const patch = typeof args.input === "string" ? args.input : "";
+  const removed: string[] = [];
+  for (const line of patch.split(/\r?\n/)) {
+    if (/^-(?!--)/.test(line)) removed.push(line.slice(1));
+    else if (removed.length) break;
+  }
+  return removed.length ? { name: "patch", text: removed.join("\n") } : undefined;
+}
+
+/** 流式参数已接收字符数的显示文字。参数：[in] args 流式参数。返回值：如 1.2K，拿不到时为 undefined。 */
+function receivedChars(
+  args: Readonly<Record<string, string>>,
+): string | undefined {
+  const count = Object.values(args).reduce(
+    (sum, value) => sum + (typeof value === "string" ? value.length : 0),
+    0,
+  );
+  if (!count) return undefined;
+  return count >= 1000 ? `${(count / 1000).toFixed(1)}K` : String(count);
+}
+
 /** 编辑卡将生成中正文切换为原生结果差异，保留外部控制的展开状态。 */
 export function EditCard({
   tool,
@@ -216,12 +252,13 @@ export function EditCard({
     0,
   );
   const truncated = sections.some((section) => section.lines.length > limit);
+  const oldText = failure ? failedOldText(args) : undefined;
+  const received = pending ? receivedChars(tool.streamingArgs!) : undefined;
   return (
     <CardFrame
       toolId={tool.id}
       kind="edit"
       status={failure ? "error" : status}
-      tone={failure ? "danger" : "default"}
       title={
         <>
           <strong>{moves.length ? "移动" : "编辑"}</strong>{" "}
@@ -262,37 +299,55 @@ export function EditCard({
         ) : undefined
       }
       statusText={
-        pending ? "◐ 生成中" : status === "running" ? "◐ 应用中" : undefined
+        pending ? "生成中" : status === "running" ? "应用中" : undefined
       }
       durationMs={toolDurationMs(tool, now)}
       expand={{ expanded, onToggle: () => context.toggle(tool.id, 0) }}
       footer={
+        failure ? undefined : pending ? (
+          `无行号${received ? ` · 已接收 ${received} 字符` : ""}`
+        ) : truncated ? (
+          <>
+            共 {total} 行 ·{" "}
+            <button type="button" onClick={() => context.toggle(tool.id, 0)}>
+              {expanded ? "收起" : "展开全部"}
+            </button>
+          </>
+        ) : undefined
+      }
+      output={
         failure ? (
-          "未改动文件"
-        ) : pending ? (
-          "无行号：参数未完成，只显示文本差异"
-        ) : truncated && !expanded ? (
-          <button onClick={() => context.toggle(tool.id, 0)}>
-            展开全部（共 {total} 行）
-          </button>
+          <>
+            <ToolOutput
+              result={{
+                content: [{ type: "text", text: toolResultText(tool) }],
+              }}
+              executable={false}
+            />
+            {details.errorKind !== undefined && (
+              <p className="tool-card-muted">
+                errorKind:{" "}
+                {typeof details.errorKind === "string"
+                  ? details.errorKind
+                  : JSON.stringify(details.errorKind)}
+              </p>
+            )}
+            <p className="tool-card-muted">文件未改动</p>
+          </>
         ) : undefined
       }
     >
       {failure ? (
-        <>
-          <ToolOutput
-            result={{ content: [{ type: "text", text: toolResultText(tool) }] }}
-            executable={false}
-          />
-          {details.errorKind !== undefined && (
-            <p className="tool-card-muted">
-              errorKind:{" "}
-              {typeof details.errorKind === "string"
-                ? details.errorKind
-                : JSON.stringify(details.errorKind)}
-            </p>
-          )}
-        </>
+        oldText ? (
+          <>
+            <div className="tool-card-muted tool-card-code-label">
+              {oldText.name}
+            </div>
+            <pre className="tool-card-old-text">
+              {oldText.text.split("\n").slice(0, 3).join("\n")}
+            </pre>
+          </>
+        ) : undefined
       ) : sections.length ? (
         sections.map((section, index) => (
           <div key={index}>
