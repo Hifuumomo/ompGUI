@@ -87,9 +87,10 @@ it.each([0, 130])(
     expect(
       container.querySelector(".tool-card")?.getAttribute("data-status"),
     ).toBe("cancelled");
-    expect(container.querySelector(".tool-card-status")?.textContent).toBe(
+    expect(container.querySelector(".tool-card-footer")?.textContent).toContain(
       "已取消",
     );
+    expect(container.querySelector(".tool-card-footer .tool-card-icon")).toBeNull();
     expect(container.textContent).toContain("Command cancelled");
     expect(container.textContent).not.toContain("✓ exit");
   },
@@ -128,15 +129,23 @@ it("bounds successful output and expands all with full command title", async () 
   expect(container.querySelector(".tool-card-output")?.textContent).toBe(
     "2\n3\n4\n5\n6",
   );
-  expect(container.textContent).toContain("共 7 行");
+  expect(
+    container.querySelector(".tool-card-truncation")?.textContent,
+  ).toContain("前 2 行已省略");
+  expect(
+    container.querySelector(".tool-card-truncation")?.textContent,
+  ).toContain("显示 5 / 7 行");
   expect(container.textContent).toContain("输出已截断");
   expect(container.textContent).toContain("输出已裁剪");
   await click(
-    container.querySelector<HTMLButtonElement>(".tool-card-footer button")!,
+    container.querySelector<HTMLButtonElement>(".tool-card-truncation button")!,
   );
   expect(container.querySelector(".tool-card-output")?.textContent).toBe(
     "0\n1\n2\n3\n4\n5\n6\n",
   );
+  expect(
+    container.querySelector(".tool-card-truncation")?.textContent,
+  ).toContain("共 7 行");
 });
 
 /** 累计快照替换输出，运行、成功和失败各使用约定末尾行数。 */
@@ -164,7 +173,9 @@ it("updates cumulative output with running ten success five error fifteen", asyn
   expect(container.querySelector(".tool-card-output")?.textContent).toBe(
     Array.from({ length: 10 }, (_, index) => `line-${index + 10}`).join("\n"),
   );
-  expect(container.textContent).toContain("末尾 10 行 · 共 20 行");
+  expect(
+    container.querySelector(".tool-card-truncation")?.textContent,
+  ).toContain("前 10 行已省略 · 显示 10 / 20 行");
   for (const next of ["0\n", "0\n1\n", "0\n1\n2\n"]) {
     await render(
       <BashCard
@@ -175,9 +186,7 @@ it("updates cumulative output with running ten success five error fifteen", asyn
     expect(container.querySelector(".tool-card-output")?.textContent).toBe(
       next.trimEnd(),
     );
-    expect(container.textContent).toContain(
-      `末尾 ${next.trimEnd().split("\n").length} 行 · 共 ${next.trimEnd().split("\n").length} 行`,
-    );
+    expect(container.querySelector(".tool-card-truncation")).toBeNull();
   }
   await render(<BashCard tool={completed} context={context} />);
   expect(
@@ -186,7 +195,9 @@ it("updates cumulative output with running ten success five error fifteen", asyn
   expect(container.querySelector(".tool-card-output")?.textContent).toBe(
     "line-15\nline-16\nline-17\nline-18\nline-19",
   );
-  expect(container.textContent).toContain("末尾 5 行 · 共 20 行");
+  expect(
+    container.querySelector(".tool-card-truncation")?.textContent,
+  ).toContain("前 15 行已省略 · 显示 5 / 20 行");
   const failedLines = Array.from(
     { length: 24 },
     (_, index) => `failed-line-${index}`,
@@ -212,7 +223,9 @@ it("updates cumulative output with running ten success five error fifteen", asyn
     failedLines.slice(-15).join("\n"),
   );
   expect(container.textContent).toContain("failed-line-14");
-  expect(container.textContent).toContain("末尾 15 行 · 共 24 行");
+  expect(
+    container.querySelector(".tool-card-truncation")?.textContent,
+  ).toContain("前 9 行已省略 · 显示 15 / 24 行");
   expect(
     container.querySelector(".tool-card")?.getAttribute("data-status"),
   ).toBe("error");
@@ -386,12 +399,12 @@ it("uses bashExecution output and stops the completed live timer", async () => {
       },
     };
     await render(<BashCard tool={evidence} context={context} />);
-    expect(container.querySelector(".tool-card-duration")?.textContent).toBe(
-      "(1秒)",
+    expect(container.querySelector(".tool-card-footer")?.textContent).toContain(
+      "运行中 1秒",
     );
     await act(() => vi.advanceTimersByTime(2000));
-    expect(container.querySelector(".tool-card-duration")?.textContent).toBe(
-      "(3秒)",
+    expect(container.querySelector(".tool-card-footer")?.textContent).toContain(
+      "运行中 3秒",
     );
     const finished = {
       ...evidence,
@@ -399,9 +412,13 @@ it("uses bashExecution output and stops the completed live timer", async () => {
     };
     await render(<BashCard tool={finished} context={context} />);
     await act(() => vi.advanceTimersByTime(4000));
-    expect(container.querySelector(".tool-card-duration")?.textContent).toBe(
-      "(3秒)",
+    expect(container.querySelector(".tool-card-footer")?.textContent).toContain(
+      "用时 3秒",
     );
+    expect(container.querySelector(".tool-card-footer")?.textContent).not.toContain(
+      "运行中",
+    );
+    expect(container.querySelector(".tool-card-duration")).toBeNull();
     await render(
       <BashCard
         tool={{
@@ -423,4 +440,46 @@ it("uses bashExecution output and stops the completed live timer", async () => {
   } finally {
     vi.useRealTimers();
   }
+});
+
+/** 输出不超过默认行数时没有截断提示。 */
+it("omits the truncation line when output fits the default height", async () => {
+  await render(
+    <BashCard
+      tool={tool("bash", { command: "short" }, { text: "a\nb\nc" })}
+      context={context}
+    />,
+  );
+  expect(container.querySelector(".tool-card-truncation")).toBeNull();
+  expect(container.querySelector(".tool-card-output")?.textContent).toBe(
+    "a\nb\nc",
+  );
+});
+
+/** 底部边框的各项按顺序拼接，缺失的项不留下多余的分隔符。 */
+it("joins footer items in order without dangling separators", async () => {
+  await render(
+    <BashCard
+      tool={tool(
+        "bash",
+        { command: "work", timeout: 120 },
+        { text: "ok", details: { exitCode: 0 } },
+      )}
+      context={context}
+    />,
+  );
+  const footer = container.querySelector(".tool-card-footer")!.textContent!;
+  expect(footer).toMatch(/^✓ exit 0( · [^·]+)*$/);
+  expect(footer).toContain("超时 120s");
+  expect(footer.indexOf("exit 0")).toBeLessThan(footer.indexOf("超时 120s"));
+  expect(footer).not.toMatch(/·\s*·/);
+});
+
+/** 后台命令的底部边框显示任务编号和终止提示，图标为 ⇢。 */
+it("shows the background job and kill notice in the footer", async () => {
+  await render(<BashCard tool={bashBackground} context={context} />);
+  const footer = container.querySelector(".tool-card-footer")!;
+  expect(footer.querySelector(".tool-card-icon")?.textContent).toBe("⇢");
+  expect(footer.textContent).toContain("后台 bg_1");
+  expect(footer.textContent).toContain("超过 300 秒将被终止");
 });
