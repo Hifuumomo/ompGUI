@@ -61,11 +61,13 @@ export function NoticeStrip({ message }: { message: AgentMessage }) {
       data-kind={launch ? "launch-completion" : "async-result"}
     >
       <header>
-        <strong>{launch ? "守护进程已退出" : "后台任务完成"}</strong>
-        {singleJob?.name && <code>{singleJob.name}</code>}
-        {!launch && !jobs.length && noticeLabel(message)
-          ? ` · ${noticeLabel(message)}`
-          : ""}
+        <span className="notice-legend">
+          <strong>{launch ? "守护进程已退出" : "后台任务完成"}</strong>
+          {singleJob?.name && <code>{singleJob.name}</code>}
+          {!launch && !jobs.length && noticeLabel(message)
+            ? ` · ${noticeLabel(message)}`
+            : ""}
+        </span>
       </header>
       {!singleJob &&
         jobs.map((job, index) => (

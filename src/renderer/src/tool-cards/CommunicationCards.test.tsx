@@ -101,6 +101,12 @@ it("通讯条保留完整换行正文，以展开属性控制三行预览", asyn
   expect(body.getAttribute("data-expanded")).toBe("false");
   expect(button.type).toBe("button");
   expect(button.getAttribute("aria-controls")).toBe(body.id);
+  // 「展开全部」嵌在底部边框里，方向与对方名称在顶部边框的 legend 里。
+  expect(button.closest(".agent-message-footer")).not.toBeNull();
+  expect(
+    container.querySelector(".agent-message-header .agent-message-legend")
+      ?.textContent,
+  ).toContain("Peer");
   await click(button);
   expect(body.textContent).toBe(text);
   expect(body.getAttribute("data-expanded")).toBe("true");

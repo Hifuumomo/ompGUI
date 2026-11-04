@@ -705,26 +705,80 @@
 
 /* 通讯、通知和时间线沿用相同的边缘对齐，不创建过程缩进。 */
 .agent-message-strip,
-.agent-message-inbox {
-  margin: 10px 0;
-  padding: 10px 14px;
+.agent-message-inbox,
+.notice-strip {
+  --frame-fill: var(--msg-in-bg);
+  position: relative;
+  margin: 20px 0 10px;
+  padding: 12px 14px 10px;
   border: 1px solid var(--msg-in-border);
-  border-radius: 8px;
-  background: var(--msg-in-bg);
-  color: var(--msg-in-text);
+  border-radius: 6px;
+  background: var(--frame-fill);
   font-size: 13px;
   min-width: 0;
 }
+.agent-message-strip,
+.agent-message-inbox {
+  color: var(--msg-in-text);
+}
 .agent-message-strip[data-direction="out"] {
-  background: var(--msg-out-bg);
+  --frame-fill: var(--msg-out-bg);
   border-color: var(--msg-out-border);
   color: var(--msg-out-text);
 }
-.agent-message-header {
+.agent-message-header,
+.notice-strip > header {
   display: flex;
-  align-items: baseline;
+  align-items: center;
+  justify-content: space-between;
   gap: 8px;
+  height: 20px;
+  margin: -23px -6px 0;
   font-weight: 600;
+  line-height: 20px;
+}
+.agent-message-legend,
+.agent-message-aside,
+.notice-legend,
+.notice-aside,
+.agent-message-footer > span {
+  padding: 0 6px;
+  white-space: nowrap;
+}
+.agent-message-legend,
+.agent-message-aside,
+.notice-legend,
+.notice-aside {
+  background: linear-gradient(var(--conversation-bg) 50%, var(--frame-fill) 50%);
+}
+.agent-message-legend,
+.notice-legend {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  min-width: 0;
+  overflow: hidden;
+}
+.agent-message-aside,
+.notice-aside {
+  flex-shrink: 0;
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--text-meta);
+}
+.agent-message-footer {
+  position: relative;
+  height: 0;
+  margin: 10px -6px -10px;
+  font-size: 12px;
+}
+.agent-message-footer > span {
+  position: absolute;
+  left: 0;
+  top: 0.5px;
+  transform: translateY(-50%);
+  line-height: 16px;
+  background: linear-gradient(var(--frame-fill) 50%, var(--conversation-bg) 50%);
 }
 .agent-message-peer {
   color: inherit;
@@ -735,12 +789,6 @@ button.agent-message-peer {
   border: 0;
   background: transparent;
   cursor: pointer;
-}
-.agent-message-aside {
-  margin-left: auto;
-  color: var(--text-meta);
-  font-size: 12px;
-  font-weight: 400;
 }
 .agent-message-aside[data-outcome="woken"] {
   color: var(--success);
@@ -758,25 +806,12 @@ button.agent-message-peer {
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
-.agent-message-inbox-title {
-  font-weight: 600;
-}
 .agent-message-inbox > .agent-message-strip {
-  margin: 8px 0 0;
+  margin: 20px 0 0;
 }
 .notice-strip {
-  margin: 10px 0;
-  padding: 10px 14px;
-  border: 1px solid var(--notice-border);
-  border-radius: 8px;
-  background: var(--notice-bg);
-  font-size: 13px;
-}
-.notice-strip header {
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
-  font-weight: 600;
+  --frame-fill: var(--notice-bg);
+  border-color: var(--notice-border);
 }
 .notice-strip header code {
   min-width: 0;

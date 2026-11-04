@@ -119,7 +119,7 @@ export function AgentMessageStrip({
       data-tool-id={tool?.id}
     >
       <header className="agent-message-header">
-        <strong>
+        <span className="agent-message-legend">
           {direction === "in" ? "← 来自 " : "→ 发给 "}
           {onOpenSubagent ? (
             <button
@@ -132,7 +132,7 @@ export function AgentMessageStrip({
           ) : (
             <span className="agent-message-peer">{peer}</span>
           )}
-        </strong>
+        </span>
         {aside && (
           <span className="agent-message-aside" data-outcome={aside}>
             {aside === "woken" ? "已唤醒" : aside}
@@ -147,19 +147,25 @@ export function AgentMessageStrip({
       >
         {text}
       </div>
-      {(truncated || expanded) && (
-        <button
-          type="button"
-          className="agent-message-expand"
-          aria-expanded={expanded}
-          aria-controls={textId}
-          onClick={toggle}
-        >
-          {expanded ? "收起" : "展开全部"}
-        </button>
-      )}
       {tool && (
-        <ToolResultImages result={tool.resultMessage ?? tool.live?.result} />
+        <div className="agent-message-media">
+          <ToolResultImages result={tool.resultMessage ?? tool.live?.result} />
+        </div>
+      )}
+      {(truncated || expanded) && (
+        <footer className="agent-message-footer">
+          <span>
+            <button
+              type="button"
+              className="agent-message-expand"
+              aria-expanded={expanded}
+              aria-controls={textId}
+              onClick={toggle}
+            >
+              {expanded ? "收起" : "展开全部"}
+            </button>
+          </span>
+        </footer>
       )}
     </section>
   );
@@ -208,8 +214,10 @@ export function AgentMessageCard({
     }
     return (
       <section className="agent-message-inbox" data-tool-id={tool.id}>
-        <header className="agent-message-inbox-title">
-          收件箱 · {entries.length} 条
+        <header className="agent-message-header">
+          <span className="agent-message-legend">
+            收件箱 · {entries.length} 条
+          </span>
         </header>
         {entries.length ? (
           entries.map((entry, index) => (
