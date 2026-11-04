@@ -12,6 +12,7 @@ import {
   usePromptPredictionSetting,
 } from "./usePromptPrediction";
 import { useFileMentions } from "./useFileMentions";
+import { MAX_PASTED_PATHS, formatPastedPaths, insertIntoTextarea, pastedFilePaths } from "./pasted-paths";
 import { ComposerFileReferences } from "./ComposerFileReferences";
 import { ContextMeter } from "./ContextMeter";
 import { FastToggle } from "./FastToggle";
@@ -3860,6 +3861,16 @@ export default function App() {
                   onBlur={mentions.blur}
                   onCompositionStart={(event) => mentions.composition(true, event.currentTarget)}
                   onCompositionEnd={(event) => mentions.composition(false, event.currentTarget)}
+                  onPaste={(event) => {
+                    if (mentions.composing) return;
+                    const paths = pastedFilePaths(event.clipboardData, (file) => window.desktop.pathForFile(file));
+                    if (!paths) return;
+                    event.preventDefault();
+                    const kept = paths.slice(0, MAX_PASTED_PATHS);
+                    if (kept.length < paths.length)
+                      report(new Error(`一次最多粘贴 ${MAX_PASTED_PATHS} 个路径，已忽略其余 ${paths.length - kept.length} 个`));
+                    insertIntoTextarea(event.currentTarget, formatPastedPaths(kept), mentions.change);
+                  }}
                   onKeyDown={(event) => {
                     if (mentions.composing || event.nativeEvent.isComposing || event.nativeEvent.keyCode === 229) return;
                     if (mentions.keyDown(event)) return;

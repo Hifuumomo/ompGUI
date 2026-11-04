@@ -1,5 +1,5 @@
 import type { BrowserCommentEditor, BrowserCommentMarker, BrowserCommentEvent, BrowserCommentRevealRequest } from "../shared/comment-overlay";
-import { contextBridge, ipcRenderer, webFrame, type IpcRendererEvent } from "electron";
+import { contextBridge, ipcRenderer, webFrame, webUtils, type IpcRendererEvent } from "electron";
 import type { TreeNavigationOptions } from "../shared/native-tree";
 import type { ProjectDiffRequest } from "../shared/project-browser";
 import type { FileAction } from "../shared/file-actions";
@@ -35,6 +35,14 @@ const desktop: DesktopBridge = {
    */
   searchMentionFiles(cwd: string, query: string): Promise<string[]> {
     return ipcRenderer.invoke("desktop:search-mention-files", cwd, query);
+  },
+  /**
+   * 取得 File 的本机路径；Electron 32 起已移除 File.path，只能在 preload 中调用 webUtils。
+   * 参数：[in] file 粘贴或拖放得到的 File。
+   * 返回值：绝对路径；内存数据为空字符串。
+   */
+  pathForFile(file: File): string {
+    return webUtils.getPathForFile(file);
   },
   subagentHistory(request) {
     return ipcRenderer.invoke("desktop:subagent-history", request);

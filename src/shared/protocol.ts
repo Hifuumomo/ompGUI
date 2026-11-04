@@ -265,6 +265,8 @@ export interface DesktopBridge extends ProjectBrowser, ProjectReview {
    * 返回值：最多三十条确定排序的正斜线相对路径，不遍历 node_modules、.git 或符号链接。
    */
   searchMentionFiles(cwd: string, query: string): Promise<string[]>;
+  /** 取得粘贴或拖入的 File 对应的本机绝对路径；截图等内存数据返回空字符串。 */
+  pathForFile(file: File): string;
   subagentHistory<T = import("./subagents").SubagentHistoryResult>(
     request: import("./subagents").SubagentHistoryRequest,
   ): Promise<T>;
