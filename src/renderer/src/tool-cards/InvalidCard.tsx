@@ -26,8 +26,12 @@ export function InvalidCard({
       toolId={tool.id}
       kind="invalid"
       status={status}
-      tone="danger"
-      title={<strong>✗ 参数无效 · {tool.name}</strong>}
+      title={
+        <>
+          <strong className="tool-card-danger-text">参数无效</strong> ·{" "}
+          {tool.name}
+        </>
+      }
       statusText=""
       durationMs={toolDurationMs(tool, now)}
       expand={

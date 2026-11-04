@@ -127,6 +127,7 @@ export function ProcessCard({
   let body: ReactNode;
   let footer: ReactNode;
   let statusText: ReactNode;
+  let output: ReactNode;
   let valid = false;
   const timedOut = details.timedOut === true || daemon.timedOut === true;
   const heading = name ? <code>{name}</code> : null;
@@ -269,13 +270,16 @@ export function ProcessCard({
         : 10;
     const tail = outputTail(text, limit);
     title = <>进程日志 · {heading}</>;
-    statusText = `末尾 ${tail.lines.length} 行`;
-    body = text ? (
+    body =
+      typeof args.lines === "number" && Number.isFinite(args.lines) ? (
+        <code className="tool-card-muted">lines: {limit}</code>
+      ) : null;
+    output = text ? (
       <CommandOutput
         text={expanded ? text : tail.lines.join("\n")}
         running={status === "running"}
       />
-    ) : null;
+    ) : undefined;
     footer = (
       <>
         末尾 {tail.lines.length} 行 · 共 {tail.total} 行
@@ -321,6 +325,7 @@ export function ProcessCard({
       durationMs={toolDurationMs(tool, now)}
       expand={{ expanded, onToggle: () => context.toggle(tool.id, 0) }}
       footer={footer}
+      output={output}
     >
       {body}
     </CardFrame>

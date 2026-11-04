@@ -1,5 +1,6 @@
 import type { ToolEvidence } from "../transcript-types";
 import type { ProcessContext } from "../TranscriptToolRow";
+import { durationText } from "../duration-text";
 import {
   cardStatus,
   toolDetails,
@@ -17,7 +18,7 @@ function record(value: unknown): Record<string, unknown> | undefined {
     : undefined;
 }
 
-/** 展示 MCP 调用身份、参数和原始结果；缺少可信元数据时使用通用框。 */
+/** 展示 MCP 调用身份、参数输入和结果输出；缺少可信元数据时使用通用框。 */
 export function McpCard({
   tool,
   context,
@@ -42,6 +43,11 @@ export function McpCard({
   }
   const expanded = context.expanded[tool.id] !== undefined;
   const result = toolResultText(tool);
+  const toggle = () => context.toggle(tool.id, 0);
+  const oneLine = JSON.stringify(args);
+  const resultLines = result.split("\n");
+  const collapsible = resultLines.length > 2;
+  const duration = toolDurationMs(tool, now);
   return (
     <CardFrame
       toolId={tool.id}
@@ -55,29 +61,48 @@ export function McpCard({
           </code>
         </>
       }
-      durationMs={toolDurationMs(tool, now)}
-      expand={{ expanded, onToggle: () => context.toggle(tool.id, 0) }}
+      aside={duration !== undefined ? `(${durationText(duration)})` : undefined}
+      expand={{ expanded, onToggle: toggle }}
+      output={
+        result ? (
+          expanded ? (
+            <pre className="tool-card-output" aria-label="MCP 结果">
+              {result}
+            </pre>
+          ) : (
+            <>
+              <pre className="tool-card-output" aria-label="MCP 结果">
+                {resultLines.slice(0, 2).join("\n")}
+              </pre>
+              {(collapsible || result.length > 0) && (
+                <div className="tool-card-muted">
+                  … 共 {result.length} 字符 ·{" "}
+                  <button
+                    type="button"
+                    className="tool-card-expand"
+                    aria-expanded={expanded}
+                    onClick={toggle}
+                  >
+                    展开
+                  </button>
+                </div>
+              )}
+            </>
+          )
+        ) : undefined
+      }
     >
-      <div className="tool-card-mcp-summary tool-card-muted">
-        参数 <code>{JSON.stringify(args)}</code> · 结果 {result.length} 字符 ·{" "}
-        <button
-          type="button"
-          className="tool-card-expand"
-          aria-expanded={expanded}
-          onClick={() => context.toggle(tool.id, 0)}
-        >
-          {expanded ? "收起" : "展开"}
-        </button>
-      </div>
-      {expanded && (
-        <>
-          <pre className="tool-card-json" aria-label="MCP 参数">
-            {JSON.stringify(args, null, 2)}
-          </pre>
-          <pre className="tool-card-output" aria-label="MCP 结果">
-            {result}
-          </pre>
-        </>
+      {expanded ? (
+        <pre className="tool-card-json" aria-label="MCP 参数">
+          {JSON.stringify(args, null, 2)}
+        </pre>
+      ) : (
+        <div className="tool-card-mcp-summary tool-card-muted">
+          参数{" "}
+          <code>
+            {oneLine.length > 120 ? `${oneLine.slice(0, 120)}…` : oneLine}
+          </code>
+        </div>
       )}
     </CardFrame>
   );

@@ -126,6 +126,67 @@ it("整框展开成功 cell 并展示各 cell 耗时", async () => {
   expect(container.textContent).toContain("cell output");
 });
 
+/** 只有出错 cell 展开时，输出放在 Output 区，标签带 cell 序号并为红色。 */
+it("eval 出错 cell 的输出显示在 Output · cell 3 下", async () => {
+  await render(<Example Card={EvalCard} evidence={evalCells} />);
+  expect(container.querySelector(".tool-card-divider")?.textContent).toBe(
+    "Output · cell 3",
+  );
+  const result = container.querySelector(".tool-card-result")!;
+  expect(result.textContent).toContain("tab killed");
+  expect(result.querySelector(".tool-card-danger-text")).not.toBeNull();
+  expect(container.querySelector(".tool-card-input")?.textContent).not.toContain(
+    "tab killed",
+  );
+  expect(container.querySelector(".tool-card-footer")?.textContent).toBe(
+    "3 个 cell",
+  );
+});
+
+/** 两个 cell 展开时，每段输出前有 cell N 标签，分隔线只写 Output。 */
+it("eval 两个 cell 展开时 Output 区有两段 cell 标签", async () => {
+  await render(<Example Card={EvalCard} evidence={evalCells} />);
+  await click(
+    container.querySelectorAll<HTMLButtonElement>(".tool-card-cell-toggle")[0],
+  );
+  expect(container.querySelector(".tool-card-divider")?.textContent).toBe(
+    "Output",
+  );
+  const labels = [
+    ...container.querySelectorAll(".tool-card-result .tool-card-code-label"),
+  ].map((node) => node.textContent?.trim());
+  expect(labels).toEqual(["cell 1", "cell 3"]);
+});
+
+/** Status 树按 statusEvents 逐行列出，最后一行用 └─，错误事件取 error 文字。 */
+it("eval 的 Status 树最后一行使用 └─", async () => {
+  const evidence = tool(
+    "eval",
+    { language: "js" },
+    {
+      details: {
+        language: "js",
+        cells: [{ title: "Open", output: "x", isError: true }],
+        statusEvents: [
+          { op: "browser", detail: "open ld https://linux.do/login" },
+          { op: "browser", detail: "ld.title()" },
+          { op: "browser", error: "Browser selector must be a string" },
+        ],
+      },
+    },
+  );
+  await render(<Example Card={EvalCard} evidence={evidence} />);
+  const rows = [
+    ...container.querySelectorAll(".tool-card-status-tree > div"),
+  ].map((node) => node.textContent);
+  expect(rows).toEqual([
+    "Status",
+    "├─ open ld https://linux.do/login",
+    "├─ ld.title()",
+    "└─ Browser selector must be a string",
+  ]);
+});
+
 /** 真实回答为字符串数组，展示为只读选中条而不是提问表单。 */
 it("展示真实已回答单选", async () => {
   await render(<Example Card={AskCard} evidence={askAnswered} />);

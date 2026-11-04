@@ -39,8 +39,13 @@ it("MCP 使用原生身份、参数与结果字符数并可展开收起", async 
   expect(container.textContent).toContain("serena/initial_instructions");
   expect(container.textContent).toContain("参数 {}");
   const result = "<serena>\nYou have semantic coding tools…";
-  expect(container.textContent).toContain(`结果 ${result.length} 字符`);
-  expect(container.querySelector("pre")).toBeNull();
+  expect(container.querySelector(".tool-card-input")?.textContent).toContain(
+    "参数 {}",
+  );
+  expect(container.querySelector(".tool-card-result")?.textContent).toContain(
+    `共 ${result.length} 字符`,
+  );
+  expect(container.querySelector('[aria-label="MCP 参数"]')).toBeNull();
   expect(
     container.querySelector(".tool-card")?.getAttribute("data-variant"),
   ).toBe("tool");
@@ -56,8 +61,19 @@ it("MCP 使用原生身份、参数与结果字符数并可展开收起", async 
     result,
   );
   expect(container.querySelector("a")).toBeNull();
-  await click(container.querySelector<HTMLButtonElement>(".tool-card-expand")!);
-  expect(container.querySelector("pre")).toBeNull();
+  await click(header);
+  expect(header.getAttribute("aria-expanded")).toBe("false");
+  expect(container.querySelector('[aria-label="MCP 参数"]')).toBeNull();
+});
+
+/** 收起时点击结果区的「展开」按钮同样展开，结果显示全部。 */
+it("MCP 结果区的展开按钮切换展开", async () => {
+  await render(<Example Card={McpCard} evidence={mcpWrite} />);
+  await click(
+    container.querySelector<HTMLButtonElement>(".tool-card-result .tool-card-expand")!,
+  );
+  expect(container.querySelector('[aria-label="MCP 参数"]')).not.toBeNull();
+  expect(container.querySelector(".tool-card-result .tool-card-expand")).toBeNull();
 });
 
 /** 不完整或错误类型的 MCP 元数据必须回退，不从 xd 地址伪造身份或文件链接。 */
@@ -112,16 +128,19 @@ it("MCP 失败显示原始错误结果和错误状态", async () => {
 /** 原生 hub 参数校验样本显示完整两行且不添加重复状态标题。 */
 it("参数无效保留真实校验错误和危险色调", async () => {
   await render(<Example Card={InvalidCard} evidence={hubInvalid} />);
-  expect(container.textContent).toContain("✗ 参数无效 · hub");
+  expect(container.textContent).toContain("参数无效 · hub");
+  expect(container.querySelector(".tool-card-icon")?.textContent).toBe("✗");
+  expect(
+    container.querySelector(".tool-card-title .tool-card-danger-text")
+      ?.textContent,
+  ).toBe("参数无效");
   expect(container.querySelector(".tool-card-invalid-error")?.textContent).toBe(
     'Validation failed for tool "hub":\n  - op: op must be hub operation (was missing)',
-  );
-  expect(container.querySelector(".tool-card")?.getAttribute("data-tone")).toBe(
-    "danger",
   );
   expect(
     container.querySelector(".tool-card")?.getAttribute("data-status"),
   ).toBe("error");
+  expect(container.querySelector(".tool-card-input")).not.toBeNull();
   expect(container.querySelector(".tool-card-expand")).toBeNull();
 });
 

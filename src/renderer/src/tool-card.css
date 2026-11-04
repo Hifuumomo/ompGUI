@@ -909,3 +909,13 @@ button.agent-message-peer {
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
+/* eval 的 Status 树：等宽灰色，位于 Output 末尾。 */
+.tool-card-status-tree {
+  margin-top: 10px;
+  font: 12px/18px var(--font-mono);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.tool-card-status-tree > :first-child {
+  font-family: var(--font-sans);
+}

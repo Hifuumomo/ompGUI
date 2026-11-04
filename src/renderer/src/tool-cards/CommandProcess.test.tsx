@@ -483,3 +483,38 @@ it("shows the background job and kill notice in the footer", async () => {
   expect(footer.textContent).toContain("后台 bg_1");
   expect(footer.textContent).toContain("超过 300 秒将被终止");
 });
+
+/** 进程日志有 lines 参数时输入区显示它，日志在 Output 区，底部为末尾 N 行。 */
+it("renders process logs with lines input, Output and footer", async () => {
+  await render(<ProcessCard tool={hubLogs} context={context} />);
+  expect(container.querySelector(".tool-card-input")?.textContent).toBe(
+    "lines: 30",
+  );
+  expect(container.querySelector(".tool-card-divider")?.textContent).toBe(
+    "Output",
+  );
+  expect(container.querySelector(".tool-card-result")?.textContent).toContain(
+    "preparing",
+  );
+  expect(container.querySelector(".tool-card-footer")?.textContent).toContain(
+    "末尾 1 行",
+  );
+});
+
+/** 没有 lines 参数时不渲染输入区，也就没有分隔线。 */
+it("omits the divider for process logs without lines", async () => {
+  const evidence = tool(
+    "hub",
+    { op: "logs", name: "train" },
+    {
+      details: { op: "logs", terminalRows: ["preparing"] },
+      text: "preparing",
+    },
+  );
+  await render(<ProcessCard tool={evidence} context={context} />);
+  expect(container.querySelector(".tool-card-input")).toBeNull();
+  expect(container.querySelector(".tool-card-divider")).toBeNull();
+  expect(container.querySelector(".tool-card-result")?.textContent).toContain(
+    "preparing",
+  );
+});

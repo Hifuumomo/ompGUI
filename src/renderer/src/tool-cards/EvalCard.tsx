@@ -55,6 +55,48 @@ function cellFailed(cell: Cell): boolean {
   );
 }
 
+type StatusEvent = { op: string; detail?: string; error?: string };
+
+/** 判断是否为 statusEvents 事件；参数：[in] value 原生值。返回值：结构合法时为 true。 */
+function isStatusEvent(value: unknown): value is StatusEvent {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+  const event = value as Record<string, unknown>;
+  return (
+    typeof event.op === "string" &&
+    (event.detail === undefined || typeof event.detail === "string") &&
+    (event.error === undefined || typeof event.error === "string") &&
+    (event.detail !== undefined || event.error !== undefined)
+  );
+}
+
+/** Status 树，最多 8 行，超出时最后一行为「… 另有 N 条」；参数：[in] events 事件。返回值：等宽灰色树。 */
+function StatusTree({ events }: { events: readonly StatusEvent[] }) {
+  const overflow = events.length > 8;
+  const shown = overflow ? events.slice(0, 7) : events;
+  const rows = [
+    ...shown.map((event) => ({
+      text: event.detail ?? event.error ?? "",
+      error: event.detail === undefined,
+    })),
+    ...(overflow
+      ? [{ text: `… 另有 ${events.length - 7} 条`, error: false }]
+      : []),
+  ];
+  return (
+    <div className="tool-card-status-tree">
+      <div className="tool-card-muted">Status</div>
+      {rows.map((row, index) => (
+        <div
+          key={index}
+          className={row.error ? "tool-card-danger-text" : "tool-card-muted"}
+        >
+          {index === rows.length - 1 ? "└─" : "├─"} {row.text}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 /** 展示执行 cell；失败项默认展开，逐项操作只改变阅读状态。 */
 export function EvalCard({
   tool,
@@ -82,6 +124,15 @@ export function EvalCard({
     return <GenericCard tool={tool} context={context} />;
   }
   const expanded = context.expanded[tool.id] !== undefined;
+  const isOpen = (index: number) =>
+    opened[index] ?? (expanded || cellFailed(cells[index]));
+  const outputs = cells.flatMap((cell, index) =>
+    isOpen(index) && cell.output !== undefined ? [{ cell, index }] : [],
+  );
+  const events = Array.isArray(details.statusEvents)
+    ? details.statusEvents.filter(isStatusEvent)
+    : [];
+  const single = outputs.length === 1;
   return (
     <CardFrame
       toolId={tool.id}
@@ -92,9 +143,35 @@ export function EvalCard({
           <strong>运行 {language}</strong> <span>{cells[0].title}</span>
         </>
       }
-      meta={`${cells.length} 个 cell`}
       durationMs={toolDurationMs(tool, now)}
       expand={{ expanded, onToggle: () => context.toggle(tool.id, 0) }}
+      footer={`${cells.length} 个 cell`}
+      outputLabel={
+        single ? `Output · cell ${(outputs[0].cell.index ?? outputs[0].index) + 1}` : undefined
+      }
+      output={
+        outputs.length || events.length ? (
+          <>
+            {outputs.map(({ cell, index }) => (
+              <div
+                key={index}
+                className={cellFailed(cell) ? "tool-card-danger-text" : undefined}
+                data-cell-output={(cell.index ?? index) + 1}
+              >
+                {!single && (
+                  <div className="tool-card-muted tool-card-code-label">
+                    cell {(cell.index ?? index) + 1}
+                  </div>
+                )}
+                <div className="tool-card-output">
+                  <ToolOutput result={cell.output!} executable />
+                </div>
+              </div>
+            ))}
+            {events.length > 0 && <StatusTree events={events} />}
+          </>
+        ) : undefined
+      }
     >
       <div className="tool-card-list">
         {cells.map((cell, index) => {
@@ -106,7 +183,7 @@ export function EvalCard({
               : status === "running" && cell.output === undefined
                 ? "running"
                 : "ok";
-          const open = opened[index] ?? (expanded || failed);
+          const open = isOpen(index);
           const duration = cell.wallTimeMs ?? cell.durationMs;
           return (
             <div
@@ -148,18 +225,11 @@ export function EvalCard({
                   {failed ? "✗" : cellStatus === "running" ? "◐" : "✓"}
                 </span>
               </button>
-              {open && (
+              {open && cell.code !== undefined && (
                 <div className="tool-card-cell-detail">
-                  {cell.code !== undefined && (
-                    <pre className="tool-card-output">
-                      <code>{cell.code}</code>
-                    </pre>
-                  )}
-                  {cell.output !== undefined && (
-                    <div className="tool-card-output">
-                      <ToolOutput result={cell.output} executable />
-                    </div>
-                  )}
+                  <pre className="tool-card-output">
+                    <code>{cell.code}</code>
+                  </pre>
                 </div>
               )}
             </div>
