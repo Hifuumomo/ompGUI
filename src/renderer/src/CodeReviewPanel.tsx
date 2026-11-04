@@ -18,6 +18,7 @@ import { sameProjectPath } from "../../shared/message-file-link";
 import { projectPreviewKind } from "../../shared/project-browser";
 import { ReviewIconButton } from "./ReviewIconButton";
 import { PaneResizeHandle } from "./PaneResizeHandle";
+import { useProjectFileMenu } from "./useProjectFileMenu";
 import { LocalCommentReveal, type LocalCommentRevealRequest, type LocalCommentRevealResult } from "./local-comment-reveal";
 
 export type { ReviewTab } from "./ReviewTabs";
@@ -274,6 +275,15 @@ function ReviewFilesPage({
   const changes = s.changes.status === "ready" ? s.changes.value : fallback;
   const file = s.file;
   const previewing = s.preview;
+  // 内容区文件标题：点击在目录栏定位，右键菜单与目录树文件行一致。
+  const [reveal, setReveal] = useState<{ readonly entry: ProjectEntry }>();
+  const titleMenu = useProjectFileMenu({
+    root: props.cwd,
+    browser: props.browser,
+    changes,
+    revision: s.revision,
+    resetOn: [file?.path, s.tab],
+  });
   return (
     <>
       <div className="code-review-toolbar">
@@ -285,7 +295,39 @@ function ReviewFilesPage({
           onClick={() => s.setFilesVisible(!s.filesVisible)}
         />
         {file && <ProjectFileIcon path={file.path} />}
-        <span title={file?.path}>{file?.name ?? "项目源码"}</span>
+        {file ? (
+          <span>
+            <button
+              type="button"
+              className="code-review-file-title"
+              title={file.path}
+              aria-label={`在目录中定位 ${file.name}`}
+              onClick={() => {
+                s.setFilesVisible(true);
+                setReveal({ entry: file });
+              }}
+              onContextMenu={(event) => {
+                if (file.kind !== "file") return;
+                event.preventDefault();
+                void titleMenu.openMenu(file, event.clientX, event.clientY, event.currentTarget);
+              }}
+              onKeyDown={(event) => {
+                if (
+                  file.kind !== "file" ||
+                  !(event.key === "ContextMenu" || (event.shiftKey && event.key === "F10"))
+                )
+                  return;
+                event.preventDefault();
+                const bounds = event.currentTarget.getBoundingClientRect();
+                void titleMenu.openMenu(file, bounds.left, bounds.bottom, event.currentTarget);
+              }}
+            >
+              {file.name}
+            </button>
+          </span>
+        ) : (
+          <span>项目源码</span>
+        )}
         {file && projectPreviewKind(file.path) && (
           <ReviewIconButton
             icon="preview"
@@ -309,6 +351,12 @@ function ReviewFilesPage({
           onClick={() => s.setRevision((value) => value + 1)}
         />
       </div>
+      {titleMenu.menuError && (
+        <p role="alert" className="code-review-menu-error">
+          {titleMenu.menuError}
+        </p>
+      )}
+      {titleMenu.menuNode}
       <div className="code-review-body">
         <div className="code-review-files" hidden={!s.filesVisible}>
           <PaneResizeHandle storageKey="omp-desktop.file-tree-width" label="调整文件目录宽度" edge="right" initialWidth={220} minWidth={120} reserve={180} />
@@ -324,6 +372,7 @@ function ReviewFilesPage({
             onExitDirectory={s.exitDirectory}
             commentReveal={props.commentReveal}
             active={s.tab === "files"}
+            revealFile={reveal}
           />
         </div>
         <section

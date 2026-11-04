@@ -32,6 +32,8 @@ interface Props {
   readonly commentReveal?: LocalCommentRevealRequest;
   /** 页面隐藏时不渲染路径标记，避免两棵树重复定位同一评论。默认 true。 */
   readonly active?: boolean;
+  /** 内容区文件标题的定位请求：每次点击传入新对象，以便重复定位同一文件。 */
+  readonly revealFile?: { readonly entry: ProjectEntry };
 }
 
 /** 文件页的目录始终按需展开，不使用变更树的“默认展开、记录折叠”语义。 */
@@ -53,6 +55,13 @@ function useTree(props: Props) {
     const ancestors = treeAncestors(props.selected);
     setExpanded((old) => new Set([...old, ...ancestors]));
   }, [props.selected, props.commentReveal]);
+  // 内容区标题请求定位：展开根与祖先目录，树行挂载后自行滚动并高亮。
+  useLayoutEffect(() => {
+    if (!props.revealFile) return;
+    setRootOpen(true);
+    const ancestors = treeAncestors(props.revealFile.entry.path);
+    setExpanded((old) => new Set([...old, ...ancestors]));
+  }, [props.revealFile]);
   function onToggle(path: string, open: boolean) {
     const key = treePath(path);
     setExpanded((current) =>
@@ -63,6 +72,12 @@ function useTree(props: Props) {
       ),
     );
   }
+  // 每次点击标题都生成新的定位目标：同一文件重复点击时条目引用可能相同（例如变更列表里的对象），
+  // 树行靠这个引用变化来决定是否再次滚动。只在点击时重建，其余重渲染不会重复触发滚动。
+  const revealTarget = useMemo(
+    () => (props.revealFile ? { ...props.revealFile.entry } : undefined),
+    [props.revealFile],
+  );
   const context: ProjectTreeContext = useMemo(
     () => ({
       browser: props.browser,
@@ -73,7 +88,7 @@ function useTree(props: Props) {
       expanded,
       onToggle,
       onSelect: props.onSelect,
-      reveal: props.requestedDirectory,
+      reveal: revealTarget ?? props.requestedDirectory,
     }),
     // onToggle 只依赖 setExpanded，保持稳定即可。
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -85,6 +100,7 @@ function useTree(props: Props) {
       expanded,
       props.onSelect,
       props.requestedDirectory,
+      revealTarget,
     ],
   );
   return { rootOpen, setRootOpen, context };

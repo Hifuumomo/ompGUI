@@ -93,6 +93,29 @@
 .code-review-toolbar > span {
   font-size: 13px;
 }
+/* 文件标题是可点击的按钮，外观保持为普通标题文字。 */
+.code-review-panel .code-review-file-title {
+  max-width: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex-shrink: 1;
+  cursor: pointer;
+}
+.code-review-panel .code-review-file-title:hover {
+  text-decoration: underline;
+}
+.code-review-menu-error {
+  margin: 0;
+  padding: 6px 12px;
+  font-size: 12px;
+}
 .code-review-toolbar small {
   color: #848992;
   white-space: nowrap;

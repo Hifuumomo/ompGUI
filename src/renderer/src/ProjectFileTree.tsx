@@ -58,11 +58,43 @@ function TreeButton({ props, expanded }: TreeButtonProps) {
     )
       return;
     const element = button.current;
-    element?.scrollIntoView?.({ block: "nearest" });
-    element?.classList.remove("project-tree-reveal");
+    if (!element) return;
+    element.classList.remove("project-tree-reveal");
     // 强制重新启动动画，让连续点击同一个目录也能得到定位反馈。
-    if (element) void element.offsetWidth;
-    element?.classList.add("project-tree-reveal");
+    void element.offsetWidth;
+    element.classList.add("project-tree-reveal");
+    if (!element.scrollIntoView) return;
+    // 目录在挂载后才异步读取：本行出现时，上方已展开的兄弟目录可能仍在加载，
+    // 它们之后撑开的高度会把本行顶出视野。因此在布局稳定前逐帧校正位置，
+    // 用户自己滚动、按键或点击后立即停止，最长校正 2 秒。
+    const scroller = element.closest("nav");
+    const offset = () =>
+      element.getBoundingClientRect().top -
+      (scroller?.getBoundingClientRect().top ?? 0) +
+      (scroller?.scrollTop ?? 0);
+    const deadline = performance.now() + 2000;
+    const interrupts = ["wheel", "pointerdown", "keydown"] as const;
+    let frame = 0;
+    let last = Number.NaN;
+    let steady = 0;
+    const stop = () => {
+      cancelAnimationFrame(frame);
+      for (const type of interrupts) window.removeEventListener(type, stop, true);
+    };
+    const tick = () => {
+      if (!element.isConnected) return stop();
+      // 尽量把目标行滚到目录栏正中；靠近列表两端时受滚动范围限制，只能尽量接近。
+      element.scrollIntoView({ block: "center" });
+      const now = offset();
+      steady = now === last ? steady + 1 : 0;
+      last = now;
+      if (steady >= 8 || performance.now() > deadline) return stop();
+      frame = requestAnimationFrame(tick);
+    };
+    for (const type of interrupts)
+      window.addEventListener(type, stop, { capture: true, passive: true });
+    tick();
+    return stop;
   }, [context.reveal, entry.path]);
   return (
     <button
