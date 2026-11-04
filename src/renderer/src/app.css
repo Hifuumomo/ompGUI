@@ -27,6 +27,7 @@
   --surface-terminal-header: #f1f3f5;
   --surface-code-block: #f6f8fa;
   --surface-code-toolbar: #eef1f4;
+  --surface-transcript: #fcfdfd;
   --surface-inline-code: #eef1f5;
   --line: #e3e7ea;
   --line-thinking: #dde2e6;
@@ -474,7 +475,7 @@ small {
   flex: 1;
   display: flex;
   flex-direction: column;
-  background: #fcfdfd;
+  background: var(--surface-transcript);
 }
 .workspace-header {
   min-height: 82px;
