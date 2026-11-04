@@ -61,7 +61,7 @@ export function WaitCard({
       title={
         <>
           <strong>等待后台任务</strong>{" "}
-          <span className="tool-card-muted">{details.jobs.length} 个</span>
+          <span className="tool-card-muted">· {details.jobs.length} 个</span>
         </>
       }
       durationMs={toolDurationMs(tool, now)}

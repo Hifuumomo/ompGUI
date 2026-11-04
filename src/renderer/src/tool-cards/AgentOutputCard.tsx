@@ -59,15 +59,15 @@ export function AgentOutputCard({
       status={status}
       title={
         <>
-          <strong>子代理输出</strong> <code>{name}</code>
+          <strong>子代理输出</strong> <code>{name}</code>{" "}
+          <span className="tool-card-muted">· {details.totalLines} 行</span>
         </>
       }
-      meta={`${details.totalLines} 行`}
       durationMs={toolDurationMs(tool, now)}
       expand={{ expanded, onToggle: () => context.toggle(tool.id, 0) }}
       footer={
         <>
-          Markdown 渲染 ·{" "}
+          Markdown ·{" "}
           {expanded ? `共 ${details.totalLines} 行` : "前 12 行"}
           {truncated && (
             <>

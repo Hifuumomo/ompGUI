@@ -128,6 +128,7 @@ export function ProcessCard({
   let footer: ReactNode;
   let statusText: ReactNode;
   let output: ReactNode;
+  let startMs: number | undefined;
   let valid = false;
   const timedOut = details.timedOut === true || daemon.timedOut === true;
   const heading = name ? <code>{name}</code> : null;
@@ -138,11 +139,18 @@ export function ProcessCard({
       ) ||
       typeof daemon.ready === "boolean" ||
       typeof daemon.timedOut === "boolean";
-    title = <>启动服务 · {heading}</>;
-    const startDuration =
+    title = (
+      <>
+        <strong>启动服务</strong> {heading}
+      </>
+    );
+    if (timedOut) statusText = "· 就绪超时";
+    startMs =
       typeof daemon.readyAt === "number" && typeof daemon.startedAt === "number"
-        ? durationText(Math.max(0, daemon.readyAt - daemon.startedAt))
+        ? Math.max(0, daemon.readyAt - daemon.startedAt)
         : undefined;
+    const startDuration =
+      startMs !== undefined ? durationText(startMs) : undefined;
     const ready = fields(args.ready);
     const seconds =
       label(ready?.timeout) ??
@@ -186,7 +194,11 @@ export function ProcessCard({
       daemon.startedAt,
       daemon.exitedAt,
     ].some((value) => value !== undefined);
-    title = <>终止 · {heading}</>;
+    title = (
+      <>
+        <strong>终止</strong> {heading}
+      </>
+    );
     body = (
       <>
         <p>
@@ -211,7 +223,7 @@ export function ProcessCard({
     title =
       op === "cancel" ? (
         <>
-          取消后台任务 ·{" "}
+          <strong>取消后台任务</strong>{" "}
           <code>
             {items
               .map((row) => label(row.id))
@@ -220,7 +232,10 @@ export function ProcessCard({
           </code>
         </>
       ) : (
-        <>后台任务 · {items.length} 个</>
+        <>
+          <strong>后台任务</strong>{" "}
+          <span className="tool-card-muted">· {items.length} 个</span>
+        </>
       );
     body = (
       <div className="tool-card-list">
@@ -238,7 +253,12 @@ export function ProcessCard({
     );
   } else if (op === "list" || op === "ps") {
     valid = Array.isArray(details.daemons);
-    title = "进程列表";
+    title = (
+      <>
+        <strong>进程列表</strong>{" "}
+        <span className="tool-card-muted">· {daemons.length} 个</span>
+      </>
+    );
     body = (
       <div className="tool-card-list">
         {daemons.map((row, index) => (
@@ -269,7 +289,11 @@ export function ProcessCard({
         ? Math.max(1, args.lines)
         : 10;
     const tail = outputTail(text, limit);
-    title = <>进程日志 · {heading}</>;
+    title = (
+      <>
+        <strong>进程日志</strong> {heading}
+      </>
+    );
     body =
       typeof args.lines === "number" && Number.isFinite(args.lines) ? (
         <code className="tool-card-muted">lines: {limit}</code>
@@ -299,18 +323,30 @@ export function ProcessCard({
       typeof details.timedOut === "boolean" ||
       Object.keys(daemon).length > 0 ||
       typeof details.matched === "boolean";
-    title = <>等待 · {heading}</>;
-    statusText = timedOut ? (
-      <span className="tool-card-warning">超时</span>
+    title = (
+      <>
+        <strong>等待</strong> {heading}
+      </>
+    );
+    const matchedNote = timedOut ? (
+      <span className="tool-card-warning"> · 超时</span>
     ) : details.matched === true || details.timedOut === false ? (
-      "✓ 已匹配"
-    ) : undefined;
-    body = label(args.pattern) ? (
-      <code className="tool-card-muted">匹配 {label(args.pattern)}</code>
+      <span> · ✓ 已匹配</span>
     ) : null;
+    body =
+      label(args.pattern) || matchedNote ? (
+        <p className="tool-card-muted">
+          {label(args.pattern) && <code>匹配 {label(args.pattern)}</code>}
+          {matchedNote}
+        </p>
+      ) : null;
   } else if (op === "send") {
     valid = typeof args.text === "string" && Object.keys(daemon).length > 0;
-    title = <>发送输入 → {heading}</>;
+    title = (
+      <>
+        <strong>发送输入 →</strong> {heading}
+      </>
+    );
     body = <pre>{label(args.text)}</pre>;
   }
   if (!valid) return <GenericCard tool={tool} context={context} />;
@@ -319,10 +355,11 @@ export function ProcessCard({
       toolId={tool.id}
       kind="process"
       status={error ? "error" : status}
-      tone={error ? "danger" : "default"}
+      tone={op === "start" && timedOut ? "warn" : "default"}
+      icon={op === "start" && timedOut ? "⚠" : undefined}
       title={title}
       statusText={statusText}
-      durationMs={toolDurationMs(tool, now)}
+      durationMs={op === "start" ? startMs : toolDurationMs(tool, now)}
       expand={{ expanded, onToggle: () => context.toggle(tool.id, 0) }}
       footer={footer}
       output={output}

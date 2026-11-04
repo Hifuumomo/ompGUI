@@ -60,8 +60,26 @@ export function SearchCard({
           <strong>搜索网页</strong> <code>{args.query}</code>
         </>
       }
-      meta={`${sources.length} 个来源`}
       durationMs={toolDurationMs(tool, now)}
+      footer={
+        <>
+          {sources.length} 个来源
+          {sources.length > 3 && (
+            <>
+              {" · "}
+              {!expanded && "前 3 条 · "}
+              <button
+                type="button"
+                className="tool-card-more"
+                aria-expanded={expanded}
+                onClick={() => context.toggle(tool.id, 0)}
+              >
+                {expanded ? "收起" : "展开全部"}
+              </button>
+            </>
+          )}
+        </>
+      }
       expand={
         sources.length > 3
           ? { expanded, onToggle: () => context.toggle(tool.id, 0) }
@@ -84,16 +102,6 @@ export function SearchCard({
           </div>
         ))}
       </div>
-      {sources.length > 3 && (
-        <button
-          type="button"
-          className="tool-card-more"
-          aria-expanded={expanded}
-          onClick={() => context.toggle(tool.id, 0)}
-        >
-          {expanded ? "收起来源" : `显示全部 ${sources.length} 个来源`}
-        </button>
-      )}
     </CardFrame>
   );
 }

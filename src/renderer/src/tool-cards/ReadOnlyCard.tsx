@@ -298,8 +298,8 @@ export function ReadOnlyCard({
       )}
       title={
         <>
-          读取 / 搜索
-          <span className="tool-card-muted">{items.length} 项</span>
+          <strong>读取 / 搜索</strong>{" "}
+          <span className="tool-card-muted">· {items.length} 项</span>
         </>
       }
     >

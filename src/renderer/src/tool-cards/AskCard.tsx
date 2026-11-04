@@ -62,7 +62,7 @@ export function AskCard({
       kind="ask"
       status={status}
       title={<strong>提问</strong>}
-      meta={details.multi ? "多选" : "单选"}
+      meta={details.multi ? "· 多选" : "· 单选"}
       durationMs={toolDurationMs(tool, now)}
     >
       <p className="tool-card-question">{details.question}</p>

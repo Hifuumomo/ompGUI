@@ -71,16 +71,11 @@ export function TaskCard({
       title={
         <>
           <strong>子代理</strong>{" "}
-          <span className="tool-card-muted">{rows.length} 个</span>
+          <span className="tool-card-muted">· {rows.length} 个</span>
         </>
       }
-      meta={total !== undefined ? `总耗时 ${durationText(total)}` : undefined}
-      durationMs={total === undefined ? toolDurationMs(tool, now) : undefined}
-      footer={
-        onOpenSubagent ? (
-          <span className="tool-card-muted">点击打开子代理面板</span>
-        ) : undefined
-      }
+      durationMs={total ?? toolDurationMs(tool, now)}
+      footer={onOpenSubagent ? "点击打开子代理面板" : undefined}
     >
       <div className="tool-card-list">
         {rows.map((row, index) => {

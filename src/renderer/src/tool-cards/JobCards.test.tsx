@@ -91,7 +91,9 @@ it("task 真实样本展示代理与三种状态，汇总总耗时", async () =>
   await render(<TaskCard tool={taskProgress} context={context} />);
   expect(container.textContent).toContain("子代理");
   expect(container.textContent).toContain("3 个");
-  expect(container.textContent).toContain("总耗时 4分12秒");
+  expect(container.querySelector(".tool-card-duration")?.textContent).toBe(
+    "(4分12秒)",
+  );
   expect(container.querySelectorAll(".tool-card-row")).toHaveLength(3);
   expect(container.textContent).toContain("PerfCore");
   expect(container.textContent).toContain("task · 已完成");
@@ -171,7 +173,9 @@ it("task 无 progress 时仅接受带身份代理状态的 results，未知状�
     },
   );
   await render(<TaskCard tool={evidence} context={context} />);
-  expect(container.textContent).toContain("总耗时 0秒");
+  expect(container.querySelector(".tool-card-duration")?.textContent).toBe(
+    "(0秒)",
+  );
   expect(container.textContent).toContain("reviewer · 失败");
   expect(container.textContent).toContain("已取消");
   expect(container.textContent).toContain("native-state");

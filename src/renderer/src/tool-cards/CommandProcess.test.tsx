@@ -518,3 +518,27 @@ it("omits the divider for process logs without lines", async () => {
     "preparing",
   );
 });
+
+/** 就绪超时：黄色色调、⚠ 图标和「· 就绪超时」状态文字，图标不混进文字。 */
+it("marks a readiness timeout with the warn tone and warning icon", async () => {
+  const evidence = tool(
+    "hub",
+    { op: "start", name: "blade" },
+    {
+      details: {
+        op: "start",
+        timedOut: true,
+        daemon: { name: "blade", state: "starting", pid: 17500 },
+      },
+      text: "started",
+    },
+  );
+  await render(<ProcessCard tool={evidence} context={context} />);
+  expect(
+    container.querySelector(".tool-card")?.getAttribute("data-tone"),
+  ).toBe("warn");
+  expect(container.querySelector(".tool-card-icon")?.textContent).toBe("⚠");
+  expect(container.querySelector(".tool-card-status")?.textContent).toBe(
+    "· 就绪超时",
+  );
+});
